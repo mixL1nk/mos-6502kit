@@ -1,0 +1,2 @@
+[workspace]
+members = ["crates/*", "apps/mos-6502kit-gui"]
