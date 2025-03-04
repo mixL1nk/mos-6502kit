@@ -1,0 +1,7 @@
+[package]
+name = "mos-6502kit-gui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+mos-6502kit = { path = "../../crates/mos-6502kit" }

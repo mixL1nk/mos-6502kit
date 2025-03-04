@@ -1,0 +1,14 @@
+[package]
+name = "mos-6502kit"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cpu = { path = "../cpu" }
+memory = { path = "../memory" }
+bus = { path = "../bus" }
+display = { path = "../display" }
+input = { path = "../input" }
+debugger = { path = "../debugger"}
+assembler = { path = "../assembler" }
+disassembler = { path = "../disassembler" }
