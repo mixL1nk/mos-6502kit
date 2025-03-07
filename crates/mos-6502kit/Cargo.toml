@@ -13,4 +13,3 @@ assembler = { path = "../assembler" }
 disassembler = { path = "../disassembler" }
 common = { path = "../common" }
 breadboard = { path = "../breadboard" }
-tokio = { version = "1", features = ["full"] }
