@@ -4,8 +4,9 @@
 //! 주요 컴포넌트, 와이어 연결, 신호 전파 등의 기능을 포함합니다.
 
 // 핵심 모듈 정의
-pub mod breadboard;
-pub mod bus_manager;
+mod breadboard;
 
-// 주요 타입 재내보내기(re-export)
 pub use breadboard::BreadBoard;
+
+// 에러 타입 재노출
+pub use error::BreadBoardError;

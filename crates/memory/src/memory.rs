@@ -1,5 +1,5 @@
-use common::bus::{BusInterface, BusOperationType, BusTransaction};
 use common::Result;
+use common::bus::{BusInterface, BusOperationType, BusTransaction};
 /// 메모리 구조체
 #[derive(Debug)]
 pub struct Memory {
@@ -17,6 +17,15 @@ impl Memory {
     /// 새로운 메모리 인스턴스 생성
     pub fn new() -> Self {
         Self { data: [0; 65536] }
+    }
+
+    pub fn get(&self, address: u16) -> Result<u8> {
+        Ok(self.data[address as usize])
+    }
+
+    pub fn set(&mut self, address: u16, value: u8) -> Result<()> {
+        self.data[address as usize] = value;
+        Ok(())
     }
 
     /// 메모리 내용 가져오기
@@ -58,7 +67,7 @@ impl Memory {
                 if i + j < size {
                     let value = self.data[current_addr.wrapping_add(j as u16) as usize];
                     // 출력 가능한 ASCII 문자만 표시
-                    let ch = if value >= 0x20 && value <= 0x7e {
+                    let ch = if (0x20..=0x7e).contains(&value) {
                         value as char
                     } else {
                         '.'
@@ -98,10 +107,7 @@ impl BusInterface for Memory {
         }
     }
 
-    fn begin_transaction(
-        &mut self,
-        _transaction: BusTransaction,
-    ) -> Result<BusTransaction> {
+    fn begin_transaction(&mut self, _transaction: BusTransaction) -> Result<BusTransaction> {
         Err("Memory cannot initiate transactions".into())
     }
 

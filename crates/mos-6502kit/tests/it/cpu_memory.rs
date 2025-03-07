@@ -1,15 +1,12 @@
 use breadboard::BreadBoard;
-use cpu::CPU;
-use memory::Memory;
 
 #[test]
 fn test_cpu_memory() {
-    let mut board = BreadBoard::new();
+    let board = BreadBoard::new();
 
     // 1. CPU와 메모리 추가
     println!("[TEST] Adding components");
-    board.add_component(CPU::new()).unwrap();
-    board.add_component(Memory::new()).unwrap();
+
 
     // 초기화 대기
     println!("[TEST] Waiting for initialization...");
@@ -19,18 +16,12 @@ fn test_cpu_memory() {
     let test_addr3 = 0x4040;
     let test_value3 = 0x41;
 
-    // 메모리 초기화
-    board.with_component_mut("Memory", |component| {
-        let memory = component.as_memory_mut().unwrap();
-        memory.set_memory_content(test_addr3, 0);
-    });
-
     // 버스 인터페이스 쓰기
     println!(
         "[TEST] Bus interface write: addr=0x{:04x}, value=0x{:02x}",
         test_addr3, test_value3
     );
-    match board.bus_cpu_memory_write(test_addr3, test_value3) {
+    match board.cpu.write_memory(test_addr3, test_value3) {
         Ok(_) => println!("[TEST] Bus write successful"),
         Err(e) => {
             println!(
@@ -42,7 +33,7 @@ fn test_cpu_memory() {
 
     // 버스 인터페이스 읽기
     println!("[TEST] Bus interface read: addr=0x{:04x}", test_addr3);
-    let bus_read_value = match board.bus_cpu_memory_read(test_addr3) {
+    let bus_read_value = match board.cpu.read_memory(test_addr3) {
         Ok(value) => {
             println!("[TEST] Bus read successful: 0x{:02x}", value);
             value
@@ -52,15 +43,7 @@ fn test_cpu_memory() {
         }
     };
 
-    // 최종 검증
-    let memory_dump = board
-        .with_component_mut("Memory", |component| {
-            let memory = component.as_memory_mut().unwrap();
-            memory.dump(0x4000, 0x50)
-        })
-        .unwrap();
 
-    println!("\n[TEST] Final memory dump:\n{}", memory_dump);
 
     println!("\n[TEST] ========== TEST RESULTS ==========");
 
@@ -72,12 +55,12 @@ fn test_cpu_memory() {
 
 #[test]
 fn test_bus_communication() {
-    let mut board = BreadBoard::new();
+    let board = BreadBoard::new();
 
     // 1. 컴포넌트 추가
     println!("[TEST] Adding components");
-    board.add_component(CPU::new()).unwrap();
-    board.add_component(Memory::new()).unwrap();
+    // board.add_component(CPU::new()).unwrap();
+    // board.add_component(Memory::new()).unwrap();
 
     // 메모리 테스트 영역 설정
     let test_addresses = [0x2020, 0x3030, 0x4040];
@@ -87,7 +70,7 @@ fn test_bus_communication() {
     println!("\n[TEST] ========== BUS WRITE TEST ==========");
     for (&addr, &value) in test_addresses.iter().zip(test_values.iter()) {
         println!("[TEST] Writing to address 0x{:04x}: 0x{:02x}", addr, value);
-        let res = board.bus_cpu_memory_write(addr, value);
+        let res = board.cpu.write_memory(addr, value);
         match res {
             Ok(_) => println!("[TEST] Write successful"),
             Err(e) => {
@@ -100,7 +83,7 @@ fn test_bus_communication() {
     println!("\n[TEST] ========== BUS READ TEST ==========");
     for (&addr, &expected) in test_addresses.iter().zip(test_values.iter()) {
         println!("[TEST] Reading from address 0x{:04x}", addr);
-        let value = board.bus_cpu_memory_read(addr).unwrap();
+        let value = board.cpu.read_memory(addr).unwrap();
         println!(
             "[TEST] Read value: 0x{:02x} (expected: 0x{:02x})",
             value, expected

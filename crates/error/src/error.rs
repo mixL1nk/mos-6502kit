@@ -27,7 +27,7 @@ impl From<&str> for SystemError {
 }
 
 #[derive(Error, Debug)]
-pub enum CPUError{
+pub enum CPUError {
     #[error("Invalid opcode: {0}")]
     InvalidOpcode(u8),
     #[error("Invalid address mode: {0}")]
@@ -43,7 +43,7 @@ pub enum CPUError{
 }
 
 #[derive(Error, Debug)]
-pub enum MemoryError{
+pub enum MemoryError {
     #[error("Invalid memory address: {0}")]
     InvalidMemoryAddress(u16),
     #[error("Invalid memory range: {0}")]
@@ -51,7 +51,7 @@ pub enum MemoryError{
 }
 
 #[derive(Error, Debug)]
-pub enum BreadBoardError{
+pub enum BreadBoardError {
     #[error("Duplicaed Component id: {0}")]
     DuplicateComponentId(String),
     #[error("Component not found: {0}")]
@@ -62,7 +62,10 @@ pub enum BreadBoardError{
     FailedToSendTransaction,
     #[error("Failed to receive transaction")]
     FailedToReceiveTransaction,
+    #[error("Failed to lock component: {0}")]
+    FailedToLockComponent(String),
+    #[error("Invalid Bus Operation")]
+    InvalidBusOperation
 }
-
 
 pub type Result<T> = std::result::Result<T, SystemError>;

@@ -1,3 +1,3 @@
 pub mod error;
 
-pub use error::{CPUError, MemoryError, BreadBoardError, SystemError};
+pub use error::{BreadBoardError, CPUError, MemoryError, SystemError};

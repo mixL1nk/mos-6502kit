@@ -2,10 +2,10 @@
 use crate::executor::InstructionExecutor;
 use crate::instruction::{InstructionDecoder, InstructionInfo, OperandSize};
 use crate::register::{RegisterData, RegisterType, Registers};
+use common::Result;
 use common::bus::memory_bus::MemoryBus;
 use common::bus::{BusInterface, BusOperationType, BusTransaction};
 use std::sync::{Arc, Mutex};
-use common::Result;
 
 /// CPU 인터럽트 타입
 #[derive(Debug, Clone, Copy)]
@@ -145,7 +145,7 @@ impl CPU {
     }
 
     /// 메모리 읽기 (MemoryBus 사용)
-    fn read_memory(&self, address: u16) -> Result<u8> {
+    pub fn read_memory(&self, address: u16) -> Result<u8> {
         if let Some(bus) = &self.memory_bus {
             let value = bus
                 .lock()
@@ -158,7 +158,7 @@ impl CPU {
     }
 
     /// 메모리 쓰기 (MemoryBus 사용)
-    fn write_memory(&self, address: u16, value: u8) -> Result<()> {
+    pub fn write_memory(&self, address: u16, value: u8) -> Result<()> {
         if let Some(bus) = &self.memory_bus {
             bus.lock()
                 .map_err(|_| "Failed to lock memory bus".to_string())?
@@ -176,7 +176,7 @@ impl CPU {
 
         let decode = self.instruction.decode(fetch)?;
         // 2. 명령어 디코드 및 실행
-        self.execute(decode);
+        let _e = self.execute(decode);
         Ok(())
     }
 }
@@ -188,10 +188,7 @@ impl BusInterface for CPU {
         Err("CPU does not process incoming transactions".into())
     }
 
-    fn begin_transaction(
-        &mut self,
-        transaction: BusTransaction,
-    ) -> Result<BusTransaction> {
+    fn begin_transaction(&mut self, transaction: BusTransaction) -> Result<BusTransaction> {
         println!(
             "[BUS] CPU initiating transaction: {:?}",
             transaction.operation_type

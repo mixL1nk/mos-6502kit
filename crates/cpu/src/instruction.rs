@@ -1,6 +1,6 @@
 use crate::{cpu::Fetch, opcode_table::initialize_opcode_table};
-use error::CPUError;
 use common::Result;
+use error::CPUError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstructionInfo {
