@@ -1,5 +1,5 @@
 use common::Result;
-use common::bus::{BusInterface, BusOperationType, BusTransaction};
+
 /// 메모리 구조체
 #[derive(Debug)]
 pub struct Memory {
@@ -79,39 +79,5 @@ impl Memory {
         }
 
         result
-    }
-}
-
-// 버스 인터페이스 구현
-impl BusInterface for Memory {
-    fn process_bus_transaction(&mut self, transaction: &mut BusTransaction) -> Result<()> {
-        match transaction.operation_type {
-            BusOperationType::Read => {
-                transaction.data = self.data[transaction.address as usize];
-                println!(
-                    "[BUS] Memory ACTUAL READ: addr=0x{:04x}, data=0x{:02x}",
-                    transaction.address, transaction.data
-                );
-                Ok(())
-            }
-            BusOperationType::Write => {
-                let old_value = self.data[transaction.address as usize];
-                self.data[transaction.address as usize] = transaction.data;
-                println!(
-                    "[BUS] Memory ACTUAL WRITE: addr=0x{:04x}, data=0x{:02x} (was: 0x{:02x})",
-                    transaction.address, transaction.data, old_value
-                );
-                Ok(())
-            }
-            _ => Err("Invalid bus operation".into()),
-        }
-    }
-
-    fn begin_transaction(&mut self, _transaction: BusTransaction) -> Result<BusTransaction> {
-        Err("Memory cannot initiate transactions".into())
-    }
-
-    fn respond_to_transaction(&mut self, transaction: &mut BusTransaction) -> Result<()> {
-        self.process_bus_transaction(transaction)
     }
 }

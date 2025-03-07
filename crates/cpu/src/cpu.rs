@@ -2,9 +2,8 @@
 use crate::executor::InstructionExecutor;
 use crate::instruction::{InstructionDecoder, InstructionInfo, OperandSize};
 use crate::register::{RegisterData, RegisterType, Registers};
+use common::MemoryBus;
 use common::Result;
-use common::bus::memory_bus::MemoryBus;
-use common::bus::{BusInterface, BusOperationType, BusTransaction};
 use std::sync::{Arc, Mutex};
 
 /// CPU 인터럽트 타입
@@ -173,51 +172,11 @@ impl CPU {
     pub fn execute_cycle(&mut self) -> Result<()> {
         // 1. 명령어 가져오기
         let fetch = self.fetch()?;
-
+        println!("[CPU] Fetched instruction: {:?}", fetch.instruction_info);
         let decode = self.instruction.decode(fetch)?;
         // 2. 명령어 디코드 및 실행
         let _e = self.execute(decode);
         Ok(())
-    }
-}
-
-// CPU에 BusInterface 트레이트 구현
-impl BusInterface for CPU {
-    fn process_bus_transaction(&mut self, _transaction: &mut BusTransaction) -> Result<()> {
-        // CPU는 주로 트랜잭션을 시작하는 쪽이므로 여기선 처리 불필요
-        Err("CPU does not process incoming transactions".into())
-    }
-
-    fn begin_transaction(&mut self, transaction: BusTransaction) -> Result<BusTransaction> {
-        println!(
-            "[BUS] CPU initiating transaction: {:?}",
-            transaction.operation_type
-        );
-        // 여기서 CPU 관련 로직 수행 (예: 레지스터 업데이트)
-        Ok(transaction)
-    }
-
-    fn respond_to_transaction(&mut self, transaction: &mut BusTransaction) -> Result<()> {
-        println!(
-            "[BUS] CPU received transaction: {:?}",
-            transaction.operation_type
-        );
-        match transaction.operation_type {
-            BusOperationType::Read => {
-                println!(
-                    "[BUS] CPU received read response, data=0x{:02x}",
-                    transaction.data
-                );
-                // 읽은 데이터를 CPU 레지스터에 저장하는 등의 처리
-                Ok(())
-            }
-            BusOperationType::Write => {
-                println!("[BUS] CPU received write response");
-                // 쓰기 응답 처리
-                Ok(())
-            }
-            _ => Err("Invalid response type for CPU".into()),
-        }
     }
 }
 

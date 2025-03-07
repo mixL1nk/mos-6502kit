@@ -1,4 +1,4 @@
-use common::bus::memory_bus::MemoryBus;
+use common::MemoryBus;
 use cpu::cpu::CPU;
 use cpu::register::{RegisterData, RegisterType};
 use std::sync::{Arc, Mutex};

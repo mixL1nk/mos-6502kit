@@ -65,7 +65,7 @@ pub enum BreadBoardError {
     #[error("Failed to lock component: {0}")]
     FailedToLockComponent(String),
     #[error("Invalid Bus Operation")]
-    InvalidBusOperation
+    InvalidBusOperation,
 }
 
 pub type Result<T> = std::result::Result<T, SystemError>;

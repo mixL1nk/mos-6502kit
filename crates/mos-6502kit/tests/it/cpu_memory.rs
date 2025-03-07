@@ -7,7 +7,6 @@ fn test_cpu_memory() {
     // 1. CPU와 메모리 추가
     println!("[TEST] Adding components");
 
-
     // 초기화 대기
     println!("[TEST] Waiting for initialization...");
 
@@ -42,8 +41,6 @@ fn test_cpu_memory() {
             panic!("[TEST] Bus read failed: {:?}", e);
         }
     };
-
-
 
     println!("\n[TEST] ========== TEST RESULTS ==========");
 
