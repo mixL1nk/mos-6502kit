@@ -1,10 +1,10 @@
 [package]
-name = "cpu"
+name = "breadboard"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bitflags = "2.9.0"
 common = { path = "../common" }
+cpu = { path = "../cpu" }
 memory = { path = "../memory" }
 error = { path = "../error" }

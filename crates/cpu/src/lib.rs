@@ -1,16 +1,17 @@
+//! CPU 모듈
+//! 6502 CPU의 기능을 구현한 모듈
+
+// 내부 모듈 선언
+pub mod cpu;
+pub mod executor;
+pub mod instruction;
+pub mod opcode_table;
 pub mod register;
+
+// 주요 타입 재내보내기
+pub use cpu::CPU;
+pub use register::{RegisterData, RegisterType};
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 }

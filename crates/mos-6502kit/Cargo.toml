@@ -6,9 +6,11 @@ edition = "2024"
 [dependencies]
 cpu = { path = "../cpu" }
 memory = { path = "../memory" }
-bus = { path = "../bus" }
 display = { path = "../display" }
 input = { path = "../input" }
 debugger = { path = "../debugger"}
 assembler = { path = "../assembler" }
 disassembler = { path = "../disassembler" }
+common = { path = "../common" }
+breadboard = { path = "../breadboard" }
+tokio = { version = "1", features = ["full"] }
