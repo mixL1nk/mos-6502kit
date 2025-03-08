@@ -2,6 +2,7 @@ use crate::RegisterData;
 use crate::RegisterType;
 use crate::cpu::CPU;
 use crate::instruction::{AddressMode, DecodedInstruction, Instruction};
+use crate::register::StatusRegister;
 use common::Result;
 
 impl CPU {
@@ -65,14 +66,14 @@ impl CPU {
         );
 
         let operand = decode.operand as u8;
-        let a = self.get(RegisterType::A).as_u8();
-        let status = self.get(RegisterType::P).as_u8();
-        let carry = (status & 0x01) != 0;
-        let decimal_mode = (status & 0x08) != 0;
+        let a = self.get_value(RegisterType::A).as_u8();
+        let status = self.status();
+        let carry = status.contains(StatusRegister::CARRY);
+        let decimal_mode = status.contains(StatusRegister::DECIMAL);
 
         if decimal_mode {
             let (result, carry_out) = self.bcd_add(a, operand, carry);
-            self.set(RegisterType::A, RegisterData::Bit8(result));
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
             self.update_bcd_flags(result, carry_out);
         } else {
             let sum = a as u16 + operand as u16 + (carry as u16);
@@ -81,8 +82,8 @@ impl CPU {
             let carry_out = sum > 0xFF;
             let overflow = ((a ^ result) & (operand ^ result) & 0x80) != 0;
 
-            self.set(RegisterType::A, RegisterData::Bit8(result));
-            self.update_arithmetic_flags(result, carry_out, overflow);
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
+            self.update_flags_arithmetic(result, carry_out, overflow);
         }
 
         Ok(())
@@ -92,14 +93,14 @@ impl CPU {
         println!("[CPU] Executing SBC with operand: 0x{:04X}", decode.operand);
 
         let operand = decode.operand as u8;
-        let a = self.get(RegisterType::A).as_u8();
-        let status = self.get(RegisterType::P).as_u8();
-        let carry = (status & 0x01) != 0;
-        let decimal_mode = (status & 0x08) != 0;
+        let a = self.get_value(RegisterType::A).as_u8();
+        let status = self.status();
+        let carry = status.contains(StatusRegister::CARRY);
+        let decimal_mode = status.contains(StatusRegister::DECIMAL);
 
         if decimal_mode {
             let (result, carry_out) = self.bcd_sub(a, operand, carry);
-            self.set(RegisterType::A, RegisterData::Bit8(result));
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
             self.update_bcd_flags(result, carry_out);
         } else {
             let operand = operand.wrapping_add(!carry as u8);
@@ -108,8 +109,8 @@ impl CPU {
             let carry_out = a >= operand;
             let overflow = ((a ^ operand) & (a ^ result) & 0x80) != 0;
 
-            self.set(RegisterType::A, RegisterData::Bit8(result));
-            self.update_arithmetic_flags(result, carry_out, overflow);
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
+            self.update_flags_arithmetic(result, carry_out, overflow);
         }
 
         Ok(())
@@ -144,10 +145,10 @@ impl CPU {
     fn inx(&mut self) -> Result<()> {
         println!("[CPU] Executing INX");
 
-        let x = self.get(RegisterType::X).as_u8();
+        let x = self.get_value(RegisterType::X).as_u8();
         let result = x.wrapping_add(1);
 
-        self.set(RegisterType::X, RegisterData::Bit8(result));
+        self.set_value(RegisterType::X, RegisterData::Bit8(result));
         self.update_nz_flags(result);
 
         Ok(())
@@ -156,10 +157,10 @@ impl CPU {
     fn iny(&mut self) -> Result<()> {
         println!("[CPU] Executing INY");
 
-        let y = self.get(RegisterType::Y).as_u8();
+        let y = self.get_value(RegisterType::Y).as_u8();
         let result = y.wrapping_add(1);
 
-        self.set(RegisterType::Y, RegisterData::Bit8(result));
+        self.set_value(RegisterType::Y, RegisterData::Bit8(result));
         self.update_nz_flags(result);
 
         Ok(())
@@ -168,10 +169,10 @@ impl CPU {
     fn dex(&mut self) -> Result<()> {
         println!("[CPU] Executing DEX");
 
-        let x = self.get(RegisterType::X).as_u8();
+        let x = self.get_value(RegisterType::X).as_u8();
         let result = x.wrapping_sub(1);
 
-        self.set(RegisterType::X, RegisterData::Bit8(result));
+        self.set_value(RegisterType::X, RegisterData::Bit8(result));
         self.update_nz_flags(result);
 
         Ok(())
@@ -180,10 +181,10 @@ impl CPU {
     fn dey(&mut self) -> Result<()> {
         println!("[CPU] Executing DEY");
 
-        let y = self.get(RegisterType::Y).as_u8();
+        let y = self.get_value(RegisterType::Y).as_u8();
         let result = y.wrapping_sub(1);
 
-        self.set(RegisterType::Y, RegisterData::Bit8(result));
+        self.set_value(RegisterType::Y, RegisterData::Bit8(result));
         self.update_nz_flags(result);
 
         Ok(())

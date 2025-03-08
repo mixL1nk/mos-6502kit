@@ -166,14 +166,14 @@ pub fn initialize_opcode_table() -> [Option<InstructionInfo>; 256] {
     table[0x88] = Some(InstructionInfo::new(Instruction::DEY, CycleInfo::new(2)));
 
     // 분기 명령
-    table[0x90] = Some(InstructionInfo::new(Instruction::BCC(0), CycleInfo::new(2)));
-    table[0xB0] = Some(InstructionInfo::new(Instruction::BCS(0), CycleInfo::new(2)));
-    table[0xF0] = Some(InstructionInfo::new(Instruction::BEQ(0), CycleInfo::new(2)));
-    table[0xD0] = Some(InstructionInfo::new(Instruction::BNE(0), CycleInfo::new(2)));
-    table[0x30] = Some(InstructionInfo::new(Instruction::BMI(0), CycleInfo::new(2)));
-    table[0x10] = Some(InstructionInfo::new(Instruction::BPL(0), CycleInfo::new(2)));
-    table[0x50] = Some(InstructionInfo::new(Instruction::BVC(0), CycleInfo::new(2)));
-    table[0x70] = Some(InstructionInfo::new(Instruction::BVS(0), CycleInfo::new(2)));
+    table[0x90] = Some(InstructionInfo::new(Instruction::BCC, CycleInfo::new(2)));
+    table[0xB0] = Some(InstructionInfo::new(Instruction::BCS, CycleInfo::new(2)));
+    table[0xF0] = Some(InstructionInfo::new(Instruction::BEQ, CycleInfo::new(2)));
+    table[0xD0] = Some(InstructionInfo::new(Instruction::BNE, CycleInfo::new(2)));
+    table[0x30] = Some(InstructionInfo::new(Instruction::BMI, CycleInfo::new(2)));
+    table[0x10] = Some(InstructionInfo::new(Instruction::BPL, CycleInfo::new(2)));
+    table[0x50] = Some(InstructionInfo::new(Instruction::BVC, CycleInfo::new(2)));
+    table[0x70] = Some(InstructionInfo::new(Instruction::BVS, CycleInfo::new(2)));
 
     // 점프/서브루틴
     table[0x4C] = Some(InstructionInfo::new(
@@ -203,6 +203,16 @@ pub fn initialize_opcode_table() -> [Option<InstructionInfo>; 256] {
     table[0xF8] = Some(InstructionInfo::new(Instruction::SED, CycleInfo::new(2)));
     table[0xB8] = Some(InstructionInfo::new(Instruction::CLV, CycleInfo::new(2)));
     table[0xEA] = Some(InstructionInfo::new(Instruction::NOP, CycleInfo::new(2)));
+
+    // BIT 명령어
+    table[0x24] = Some(InstructionInfo::new(
+        Instruction::BIT(AddressMode::ZeroPage),
+        CycleInfo::new(3),
+    ));
+    table[0x2C] = Some(InstructionInfo::new(
+        Instruction::BIT(AddressMode::Absolute),
+        CycleInfo::new(4),
+    ));
 
     table
 }

@@ -50,37 +50,37 @@ fn test_cpu_execute_instructions() {
     let mut cpu = CPU::new();
 
     // PC 레지스터 초기화 (테스트 프로그램 시작 주소)
-    cpu.set(RegisterType::PC, RegisterData::Bit16(0x1000));
+    cpu.set_value(RegisterType::PC, RegisterData::Bit16(0x1000));
 
     // 메모리 버스 모의 객체 생성 및 연결
     let memory_bus = Arc::new(Mutex::new(MockMemoryBus::new()));
     cpu.set_memory_bus(memory_bus.clone());
 
     // 첫 번째 명령어 실행: LDA #$42
-    cpu.execute_cycle()
-        .expect("Failed to execute first instruction");
+    cpu.step().expect("Failed to execute first instruction");
 
     // A 레지스터 확인
-    assert_eq!(cpu.get(RegisterType::A), RegisterData::Bit8(0x42));
-    assert_eq!(cpu.get(RegisterType::PC), RegisterData::Bit16(0x1002));
+    assert_eq!(cpu.get_value(RegisterType::A), RegisterData::Bit8(0x42));
+    assert_eq!(cpu.get_value(RegisterType::PC), RegisterData::Bit16(0x1002));
 
     // 두 번째 명령어 실행: STA $2000
-    cpu.execute_cycle()
-        .expect("Failed to execute second instruction");
+    cpu.step().expect("Failed to execute second instruction");
 
     // 메모리 확인
     let memory_value = memory_bus.lock().unwrap().read(0x2000);
     assert_eq!(memory_value, 0x42);
-    assert_eq!(cpu.get(RegisterType::PC), RegisterData::Bit16(0x1005));
+    assert_eq!(cpu.get_value(RegisterType::PC), RegisterData::Bit16(0x1005));
 
     // 세 번째 명령어 실행: LDA #$FF
-    cpu.execute_cycle()
-        .expect("Failed to execute third instruction");
+    cpu.step().expect("Failed to execute third instruction");
 
     // A 레지스터 확인
-    assert_eq!(cpu.get(RegisterType::A), RegisterData::Bit8(0xFF));
+    assert_eq!(cpu.get_value(RegisterType::A), RegisterData::Bit8(0xFF));
 
     // 네 번째 명령어 실행: NOP
-    cpu.execute_cycle()
-        .expect("Failed to execute fourth instruction");
+    cpu.step().expect("Failed to execute fourth instruction");
+
+    // CPU run Continuously before halt
+    cpu.set_value(RegisterType::PC, RegisterData::Bit16(0x1000));
+    cpu.run().expect("Failed to run CPU");
 }

@@ -59,6 +59,10 @@ pub struct DecodedInstruction {
     pub bytes: u8,
     /// 명령어의 operand 값
     pub operand: u16,
+    /// 페이지 경계를 넘었는지 여부
+    pub page_crossed: bool,
+    /// 실제 실행에 필요한 사이클 수
+    pub total_cycles: u8,
 }
 
 /// 명령어 디코더
@@ -93,7 +97,7 @@ impl InstructionDecoder {
             operand,
         } = fetch;
         let inst = instruction_info.instruction;
-        let (bytes_count, operand_value) = match inst {
+        let (bytes_count, operand_value, page_crossed) = match inst {
             Instruction::LDA(mode)
             | Instruction::LDX(mode)
             | Instruction::LDY(mode)
@@ -113,76 +117,36 @@ impl InstructionDecoder {
             | Instruction::ASL(mode)
             | Instruction::LSR(mode)
             | Instruction::ROL(mode)
-            | Instruction::ROR(mode) => match mode {
-                AddressMode::Immediate => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
+            | Instruction::ROR(mode) => {
+                let (size, value, crosses_page) = match mode {
+                    AddressMode::Immediate => (2, operand[0] as u16, false),
+                    AddressMode::ZeroPage => (2, operand[0] as u16, false),
+                    AddressMode::ZeroPageX | AddressMode::ZeroPageY => {
+                        (2, operand[0] as u16, false)
                     }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::ZeroPage => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
+                    AddressMode::Absolute => {
+                        (3, ((operand[1] as u16) << 8) | operand[0] as u16, false)
                     }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::ZeroPageX => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
+                    AddressMode::AbsoluteX | AddressMode::AbsoluteY => {
+                        let base = ((operand[1] as u16) << 8) | operand[0] as u16;
+                        let crosses = (base & 0xFF00) != ((base + 1) & 0xFF00);
+                        (3, base, crosses)
                     }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::ZeroPageY => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
+                    AddressMode::Indirect => {
+                        (3, ((operand[1] as u16) << 8) | operand[0] as u16, false)
                     }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::Absolute => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
+                    AddressMode::IndirectX => (2, operand[0] as u16, false),
+                    AddressMode::IndirectY => {
+                        let base = operand[0] as u16;
+                        let crosses = (base & 0xFF00) != ((base + 1) & 0xFF00);
+                        (2, base, crosses)
                     }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::AbsoluteX => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::AbsoluteY => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::Indirect => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::IndirectX => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::IndirectY => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::Relative => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::Accumulator => (1, 0),
-                AddressMode::Implied => (1, 0),
-            },
+                    AddressMode::Relative => (2, operand[0] as u16, false),
+                    AddressMode::Accumulator => (1, 0, false),
+                    AddressMode::Implied => (1, 0, false),
+                };
+                (size, value, crosses_page)
+            }
             Instruction::PHA
             | Instruction::PLA
             | Instruction::PHP
@@ -207,14 +171,22 @@ impl InstructionDecoder {
             | Instruction::NOP
             | Instruction::BRK
             | Instruction::RTI
-            | Instruction::RTS => (1, 0),
+            | Instruction::RTS => (1, 0, false),
             _ => return Err(CPUError::Decode(format!("Invalid instruction: {:?}", inst)).into()),
         };
+
+        // 총 사이클 수 계산
+        let mut total_cycles = instruction_info.cycles.base_cycles;
+        if page_crossed && instruction_info.cycles.page_cross {
+            total_cycles += 1;
+        }
 
         Ok(DecodedInstruction {
             info: instruction_info,
             bytes: bytes_count,
             operand: operand_value,
+            page_crossed,
+            total_cycles,
         })
     }
 }
@@ -330,14 +302,14 @@ pub enum Instruction {
     ROR(AddressMode), // Rotate Right
 
     // 분기 명령
-    BCC(i8), // Branch if Carry Clear
-    BCS(i8), // Branch if Carry Set
-    BEQ(i8), // Branch if Equal
-    BNE(i8), // Branch if Not Equal
-    BMI(i8), // Branch if Minus
-    BPL(i8), // Branch if Plus
-    BVC(i8), // Branch if Overflow Clear
-    BVS(i8), // Branch if Overflow Set
+    BCC, // Branch if Carry Clear
+    BCS, // Branch if Carry Set
+    BEQ, // Branch if Equal
+    BNE, // Branch if Not Equal
+    BMI, // Branch if Minus
+    BPL, // Branch if Plus
+    BVC, // Branch if Overflow Clear
+    BVS, // Branch if Overflow Set
 
     // 점프/서브루틴
     JMP(AddressMode), // Jump
@@ -357,4 +329,7 @@ pub enum Instruction {
     SED, // Set Decimal Mode
     CLV, // Clear Overflow Flag
     NOP, // No Operation
+
+    // 논리 연산
+    BIT(AddressMode), // Bit Test
 }
