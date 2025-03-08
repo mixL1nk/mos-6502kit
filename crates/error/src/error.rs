@@ -21,7 +21,23 @@ pub enum Error {
     DuplicateComponentId(String),
     ComponentNotFound(String),
     FailedToLockComponent(String),
-
+    // -- Assembler errors
+    InvalidNumber {
+        line: usize,
+        column: usize,
+    },
+    InvalidHexNumber {
+        line: usize,
+        column: usize,
+    },
+    InvalidBinaryNumber {
+        line: usize,
+        column: usize,
+    },
+    UnexpectedEndMacro {
+        line: usize,
+        column: usize,
+    },
     #[from]
     Io(io::Error),
     // -- External errors
