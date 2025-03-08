@@ -4,6 +4,7 @@ use crate::{
     register::StatusRegister,
 };
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_flag(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -24,14 +25,14 @@ impl CPU {
             Instruction::SED => self.set_flag_instruction(StatusRegister::DECIMAL),
             Instruction::SEI => self.set_flag_instruction(StatusRegister::INTERRUPT_DISABLE),
 
-            _ => Err("Invalid flag instruction".into()),
+            _ => Err(Error::InvalidInstruction { inst_type: "flag" }),
         }
     }
 
     // 플래그 해제 공통 메서드
     fn clear_flag(&mut self, flag: StatusRegister) -> Result<()> {
         println!("[CPU] Clearing flag: {:?}", flag);
-        let mut status = self.status();
+        let mut status = self.status_flag();
         status.remove(flag);
         self.set_status(status);
         Ok(())
@@ -41,7 +42,7 @@ impl CPU {
     // 기존 set_flag와 이름이 겹치지 않도록 set_flag_instruction으로 명명
     fn set_flag_instruction(&mut self, flag: StatusRegister) -> Result<()> {
         println!("[CPU] Setting flag: {:?}", flag);
-        let mut status = self.status();
+        let mut status = self.status_flag();
         status.insert(flag);
         self.set_status(status);
         Ok(())

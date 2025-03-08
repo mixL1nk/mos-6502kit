@@ -3,7 +3,7 @@ use crate::{
     instruction::{DecodedInstruction, Instruction},
 };
 use common::Result;
-
+use error::Error;
 impl CPU {
     pub(super) fn execute_system(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
@@ -14,7 +14,9 @@ impl CPU {
             Instruction::BRK => self.brk(),
             Instruction::RTI => self.rti(),
             Instruction::NOP => self.nop(),
-            _ => Err("Invalid system instruction".into()),
+            _ => Err(Error::InvalidInstruction {
+                inst_type: "system",
+            }),
         }
     }
 

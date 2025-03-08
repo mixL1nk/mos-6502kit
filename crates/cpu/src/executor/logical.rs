@@ -4,6 +4,7 @@ use crate::{
     register::StatusRegister,
 };
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_logical(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -16,7 +17,9 @@ impl CPU {
             Instruction::ORA(mode) => self.ora(mode, decoded),
             Instruction::EOR(mode) => self.eor(mode, decoded),
             Instruction::BIT(mode) => self.bit(mode, decoded),
-            _ => Err("Invalid logical instruction".into()),
+            _ => Err(Error::InvalidInstruction {
+                inst_type: "logical",
+            }),
         }
     }
 

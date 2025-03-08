@@ -4,6 +4,7 @@ use crate::{
     register::StatusRegister,
 };
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_jump(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -26,7 +27,7 @@ impl CPU {
                     Instruction::BPL => (StatusRegister::NEGATIVE, false),
                     Instruction::BVC => (StatusRegister::OVERFLOW, false),
                     Instruction::BVS => (StatusRegister::OVERFLOW, true),
-                    _ => return Err(format!("Invalid jump instruction: {:?}", instruction).into()),
+                    _ => return Err(Error::InvalidInstruction { inst_type: "jump" }),
                 };
 
                 println!(

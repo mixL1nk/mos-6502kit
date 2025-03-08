@@ -3,6 +3,7 @@ use crate::{
     instruction::{DecodedInstruction, Instruction},
 };
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_stack(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -15,7 +16,7 @@ impl CPU {
             Instruction::PHP => self.php(),
             Instruction::PLA => self.pla(),
             Instruction::PLP => self.plp(),
-            _ => Err("Invalid stack instruction".into()),
+            _ => Err(Error::InvalidInstruction { inst_type: "stack" }),
         }
     }
 

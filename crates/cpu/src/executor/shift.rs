@@ -4,6 +4,7 @@ use crate::{
     register::StatusRegister,
 };
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_shift(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -16,7 +17,7 @@ impl CPU {
             Instruction::LSR(mode) => self.lsr(mode, decoded),
             Instruction::ROL(mode) => self.rol(mode, decoded),
             Instruction::ROR(mode) => self.ror(mode, decoded),
-            _ => Err("Invalid shift instruction".into()),
+            _ => Err(Error::InvalidInstruction { inst_type: "shift" }),
         }
     }
 
@@ -68,7 +69,7 @@ impl CPU {
 
     fn rol(&mut self, mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
         println!("[CPU] Executing ROL with operand: 0x{:04X}", decode.operand);
-        let status = self.status();
+        let status = self.status_flag();
         let old_carry = status.contains(StatusRegister::CARRY);
 
         match mode {
@@ -94,7 +95,7 @@ impl CPU {
 
     fn ror(&mut self, mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
         println!("[CPU] Executing ROR with operand: 0x{:04X}", decode.operand);
-        let status = self.status();
+        let status = self.status_flag();
         let old_carry = status.contains(StatusRegister::CARRY);
 
         match mode {

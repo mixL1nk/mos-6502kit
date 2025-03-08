@@ -1,6 +1,6 @@
 use crate::{cpu::Fetch, opcode_table::initialize_opcode_table};
 use common::Result;
-use error::CPUError;
+use error::Error;
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstructionInfo {
@@ -172,7 +172,11 @@ impl InstructionDecoder {
             | Instruction::BRK
             | Instruction::RTI
             | Instruction::RTS => (1, 0, false),
-            _ => return Err(CPUError::Decode(format!("Invalid instruction: {:?}", inst)).into()),
+            _ => {
+                return Err(Error::InvalidInstruction {
+                    inst_type: "opcode",
+                });
+            }
         };
 
         // 총 사이클 수 계산

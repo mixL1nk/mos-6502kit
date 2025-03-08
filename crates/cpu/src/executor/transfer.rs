@@ -4,6 +4,7 @@ use crate::{
 };
 use crate::{RegisterData, RegisterType};
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_transfer(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -24,7 +25,9 @@ impl CPU {
             Instruction::TXA => self.txa(),
             Instruction::TXS => self.txs(),
             Instruction::TYA => self.tya(),
-            _ => Err("Invalid transfer instruction".into()),
+            _ => Err(Error::InvalidInstruction {
+                inst_type: "transfer",
+            }),
         }
     }
 

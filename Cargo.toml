@@ -1,3 +1,6 @@
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
 [workspace]
 members = ["crates/*", "apps/mos-6502kit-gui"]
 resolver = "3"

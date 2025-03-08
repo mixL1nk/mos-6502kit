@@ -4,6 +4,7 @@ use crate::cpu::CPU;
 use crate::instruction::{AddressMode, DecodedInstruction, Instruction};
 use crate::register::StatusRegister;
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_arithmetic(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -20,7 +21,9 @@ impl CPU {
             Instruction::INY => self.iny(),
             Instruction::DEX => self.dex(),
             Instruction::DEY => self.dey(),
-            _ => Err("Invalid arithmetic instruction".into()),
+            _ => Err(Error::InvalidInstruction {
+                inst_type: "arithmetic",
+            }),
         }
     }
 
@@ -67,7 +70,7 @@ impl CPU {
 
         let operand = decode.operand as u8;
         let a = self.get_value(RegisterType::A).as_u8();
-        let status = self.status();
+        let status = self.status_flag();
         let carry = status.contains(StatusRegister::CARRY);
         let decimal_mode = status.contains(StatusRegister::DECIMAL);
 
@@ -94,7 +97,7 @@ impl CPU {
 
         let operand = decode.operand as u8;
         let a = self.get_value(RegisterType::A).as_u8();
-        let status = self.status();
+        let status = self.status_flag();
         let carry = status.contains(StatusRegister::CARRY);
         let decimal_mode = status.contains(StatusRegister::DECIMAL);
 
@@ -120,10 +123,10 @@ impl CPU {
         println!("[CPU] Executing INC with operand: 0x{:04X}", decode.operand);
 
         let addr = decode.operand;
-        let value = self.read_memory(addr).map_err(|e| e.to_string())?;
+        let value = self.read_memory(addr)?;
         let result = value.wrapping_add(1);
 
-        self.write_memory(addr, result).map_err(|e| e.to_string())?;
+        self.write_memory(addr, result)?;
         self.update_nz_flags(result);
 
         Ok(())
@@ -133,10 +136,10 @@ impl CPU {
         println!("[CPU] Executing DEC with operand: 0x{:04X}", decode.operand);
 
         let addr = decode.operand;
-        let value = self.read_memory(addr).map_err(|e| e.to_string())?;
+        let value = self.read_memory(addr)?;
         let result = value.wrapping_sub(1);
 
-        self.write_memory(addr, result).map_err(|e| e.to_string())?;
+        self.write_memory(addr, result)?;
         self.update_nz_flags(result);
 
         Ok(())

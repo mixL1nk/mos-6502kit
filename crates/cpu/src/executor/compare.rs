@@ -4,6 +4,7 @@ use crate::{
     register::StatusRegister,
 };
 use common::Result;
+use error::Error;
 
 impl CPU {
     pub(super) fn execute_compare(&mut self, decoded: DecodedInstruction) -> Result<()> {
@@ -15,7 +16,9 @@ impl CPU {
             Instruction::CMP(mode) => self.cmp(mode, decoded),
             Instruction::CPX(mode) => self.cpx(mode, decoded),
             Instruction::CPY(mode) => self.cpy(mode, decoded),
-            _ => Err("Invalid compare instruction".into()),
+            _ => Err(Error::InvalidInstruction {
+                inst_type: "compare",
+            }),
         }
     }
 

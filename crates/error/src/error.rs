@@ -1,71 +1,39 @@
-use thiserror::Error;
+use derive_more::From;
+use std::io;
 
-#[derive(Error, Debug)]
-pub enum SystemError {
-    #[error("CPU Error: {0}")]
-    CPU(#[from] CPUError),
-    #[error("Memory Error: {0}")]
-    Memory(#[from] MemoryError),
-    #[error("BreadBoard Error: {0}")]
-    BreadBoard(#[from] BreadBoardError),
-
-    #[error("General Error: {0}")]
-    General(String),
-}
-
-// String 및 &str에서 SystemError로의 자동 변환
-impl From<String> for SystemError {
-    fn from(s: String) -> Self {
-        SystemError::General(s)
-    }
-}
-
-impl From<&str> for SystemError {
-    fn from(s: &str) -> Self {
-        SystemError::General(s.to_string())
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum CPUError {
-    #[error("Invalid opcode: {0}")]
+#[derive(Debug, From)]
+pub enum Error {
+    // -- CPU errors
     InvalidOpcode(u8),
-    #[error("Invalid address mode: {0}")]
     InvalidAddressMode(u8),
-    #[error("Invalid operand")]
     InvalidOperand(u8),
-    #[error("Invalid register: {0}")]
     InvalidRegister(u8),
-    #[error("Decode error: {0}")]
-    Decode(String),
-    #[error("Internal error: {0}")]
+    InvalidInstruction {
+        inst_type: &'static str,
+    },
+    FailedToLockMemoryBus,
+    MemoryBusConnectionFailed,
     Internal(String),
-}
-
-#[derive(Error, Debug)]
-pub enum MemoryError {
-    #[error("Invalid memory address: {0}")]
+    // -- Memory errors
     InvalidMemoryAddress(u16),
-    #[error("Invalid memory range: {0}")]
     InvalidMemoryRange(u16),
-}
-
-#[derive(Error, Debug)]
-pub enum BreadBoardError {
-    #[error("Duplicaed Component id: {0}")]
+    // -- Breadboard errors
     DuplicateComponentId(String),
-    #[error("Component not found: {0}")]
     ComponentNotFound(String),
-    #[error("Failed to Process transaction")]
-    FailedToProcessTransaction,
-    #[error("Failed to send transaction")]
-    FailedToSendTransaction,
-    #[error("Failed to receive transaction")]
-    FailedToReceiveTransaction,
-    #[error("Failed to lock component: {0}")]
     FailedToLockComponent(String),
-    #[error("Invalid Bus Operation")]
-    InvalidBusOperation,
+
+    #[from]
+    Io(io::Error),
+    // -- External errors
+    // not yet implemented
 }
 
-pub type Result<T> = std::result::Result<T, SystemError>;
+impl core::fmt::Display for Error {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter) -> core::result::Result<(), core::fmt::Error> {
+        write!(fmt, "{self:?}")
+    }
+}
+
+impl std::error::Error for Error {}
+
+pub type Result<T> = std::result::Result<T, Error>;

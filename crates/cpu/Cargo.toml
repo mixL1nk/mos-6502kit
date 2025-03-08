@@ -3,6 +3,9 @@ name = "cpu"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+doctest = false
+
 [dependencies]
 bitflags = "2.9.0"
 common = { path = "../common" }

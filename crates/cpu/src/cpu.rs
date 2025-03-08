@@ -3,6 +3,7 @@ use crate::instruction::{InstructionDecoder, InstructionInfo, OperandSize};
 use crate::register::{RegisterData, RegisterType, Registers, SpecialRegister8, StatusRegister};
 use common::MemoryBus;
 use common::Result;
+use error::Error;
 use std::sync::{Arc, Mutex};
 
 /// CPU 인터럽트 타입
@@ -120,7 +121,7 @@ impl CPU {
     }
 
     /// 상태 레지스터 직접 가져오기
-    pub fn status(&self) -> StatusRegister {
+    pub fn status_flag(&self) -> StatusRegister {
         match self.registers.p {
             SpecialRegister8::P(status) => status,
             _ => unreachable!("Status register has unexpected type"),
@@ -137,14 +138,14 @@ impl CPU {
 
     /// 플래그 설정하기
     pub fn set_flag(&mut self, flag: StatusRegister, value: bool) {
-        let mut status = self.status();
+        let mut status = self.status_flag();
         status.set(flag, value);
         self.set_status(status);
     }
 
     /// 플래그 확인하기
     pub fn get_flag(&self, flag: StatusRegister) -> bool {
-        self.status().contains(flag)
+        self.status_flag().contains(flag)
     }
 
     /// PC 레지스터 값 가져오기
@@ -207,11 +208,11 @@ impl CPU {
         if let Some(bus) = &self.memory_bus {
             let value = bus
                 .lock()
-                .map_err(|_| "Failed to lock memory bus".to_string())?
+                .map_err(|_| Error::FailedToLockMemoryBus)?
                 .read(address);
             Ok(value)
         } else {
-            Err("Memory bus not connected".into())
+            Err(Error::MemoryBusConnectionFailed)
         }
     }
 
@@ -219,11 +220,11 @@ impl CPU {
     pub fn write_memory(&self, address: u16, value: u8) -> Result<()> {
         if let Some(bus) = &self.memory_bus {
             bus.lock()
-                .map_err(|_| "Failed to lock memory bus".to_string())?
+                .map_err(|_| Error::FailedToLockMemoryBus)?
                 .write(address, value);
             Ok(())
         } else {
-            Err("Memory bus not connected".into())
+            Err(Error::MemoryBusConnectionFailed)
         }
     }
 
@@ -450,7 +451,7 @@ mod tests {
     #[test]
     fn test_register() {
         let cpu = CPU::new();
-        let mut status = cpu.status();
+        let mut status = cpu.status_flag();
         println!("{:?}", status);
         status.set(StatusRegister::CARRY, true);
         println!("{:?}", status);

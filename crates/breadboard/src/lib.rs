@@ -7,6 +7,3 @@
 mod breadboard;
 
 pub use breadboard::BreadBoard;
-
-// 에러 타입 재노출
-pub use error::BreadBoardError;
