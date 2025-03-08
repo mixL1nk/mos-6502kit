@@ -1,10 +1,11 @@
 //! CPU 에 대한 기본 정보
-use crate::instruction::{InstructionDecoder, InstructionInfo, OperandSize};
+use crate::instruction::InstructionDecoder;
 use crate::register::{RegisterData, RegisterType, Registers, SpecialRegister8, StatusRegister};
 use common::MemoryBus;
 use common::Result;
 use error::Error;
 use std::sync::{Arc, Mutex};
+use types::InstructionInfo;
 
 /// CPU 인터럽트 타입
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -180,13 +181,13 @@ impl CPU {
         let ins = self.instruction.get_instruction_info(opcode).unwrap();
         let need = ins.get_operand_size();
         let operand = match need {
-            OperandSize::One => {
+            1 => {
                 let operand = self.read_memory(self.get_pc())?;
                 println!("[CPU] Fetched operand: 0x{:02X}", operand);
                 self.increment_pc(1);
                 vec![operand]
             }
-            OperandSize::Two => {
+            2 => {
                 let low_byte = self.read_memory(self.get_pc())?;
                 self.increment_pc(1);
                 let high_byte = self.read_memory(self.get_pc())?;
@@ -195,7 +196,7 @@ impl CPU {
                 println!("[CPU] Fetched operand: 0x{:04X}", operand);
                 vec![low_byte, high_byte]
             }
-            OperandSize::Zero => {
+            _ => {
                 vec![]
             }
         };

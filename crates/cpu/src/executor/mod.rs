@@ -9,7 +9,8 @@ pub mod system;
 pub mod transfer;
 
 use crate::CPU;
-use crate::instruction::{DecodedInstruction, Instruction};
+use crate::instruction::DecodedInstruction;
+use types::Instruction;
 
 impl CPU {
     pub(super) fn execute(&mut self, decoded: DecodedInstruction) -> common::Result<()> {

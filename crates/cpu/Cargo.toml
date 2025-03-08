@@ -11,3 +11,4 @@ bitflags = "2.9.0"
 common = { path = "../common" }
 memory = { path = "../memory" }
 error = { path = "../error" }
+types = { path = "../types" }

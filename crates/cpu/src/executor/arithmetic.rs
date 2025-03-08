@@ -1,10 +1,10 @@
 use crate::RegisterData;
 use crate::RegisterType;
-use crate::cpu::CPU;
-use crate::instruction::{AddressMode, DecodedInstruction, Instruction};
 use crate::register::StatusRegister;
+use crate::{CPU, instruction::DecodedInstruction};
 use common::Result;
 use error::Error;
+use types::{AddressMode, Instruction};
 
 impl CPU {
     pub(super) fn execute_arithmetic(&mut self, decoded: DecodedInstruction) -> Result<()> {

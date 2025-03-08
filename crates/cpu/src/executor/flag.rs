@@ -1,10 +1,7 @@
-use crate::{
-    CPU,
-    instruction::{DecodedInstruction, Instruction},
-    register::StatusRegister,
-};
+use crate::{CPU, instruction::DecodedInstruction, register::StatusRegister};
 use common::Result;
 use error::Error;
+use types::Instruction;
 
 impl CPU {
     pub(super) fn execute_flag(&mut self, decoded: DecodedInstruction) -> Result<()> {

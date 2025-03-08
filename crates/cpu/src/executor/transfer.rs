@@ -1,10 +1,8 @@
-use crate::{
-    CPU,
-    instruction::{AddressMode, DecodedInstruction, Instruction},
-};
+use crate::{CPU, instruction::DecodedInstruction};
 use crate::{RegisterData, RegisterType};
 use common::Result;
 use error::Error;
+use types::{AddressMode, Instruction};
 
 impl CPU {
     pub(super) fn execute_transfer(&mut self, decoded: DecodedInstruction) -> Result<()> {

@@ -1,9 +1,7 @@
-use crate::{
-    CPU, RegisterData, RegisterType,
-    instruction::{DecodedInstruction, Instruction},
-};
+use crate::{CPU, RegisterData, RegisterType, instruction::DecodedInstruction};
 use common::Result;
 use error::Error;
+use types::Instruction;
 
 impl CPU {
     pub(super) fn execute_stack(&mut self, decoded: DecodedInstruction) -> Result<()> {

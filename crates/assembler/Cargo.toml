@@ -7,3 +7,6 @@ edition = "2024"
 doctest = false
 
 [dependencies]
+common = { path = "../common" }
+error = { path = "../error" }
+cpu = { path = "../cpu" }

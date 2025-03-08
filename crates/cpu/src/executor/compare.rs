@@ -1,10 +1,7 @@
-use crate::{
-    CPU, RegisterType,
-    instruction::{AddressMode, DecodedInstruction, Instruction},
-    register::StatusRegister,
-};
+use crate::{CPU, RegisterType, instruction::DecodedInstruction, register::StatusRegister};
 use common::Result;
 use error::Error;
+use types::{AddressMode, Instruction};
 
 impl CPU {
     pub(super) fn execute_compare(&mut self, decoded: DecodedInstruction) -> Result<()> {
