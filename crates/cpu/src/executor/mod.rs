@@ -54,14 +54,14 @@ impl CPU {
             Instruction::JMP(_)
             | Instruction::JSR(_)
             | Instruction::RTS
-            | Instruction::BCC
-            | Instruction::BCS
-            | Instruction::BEQ
-            | Instruction::BNE
-            | Instruction::BMI
-            | Instruction::BPL
-            | Instruction::BVC
-            | Instruction::BVS => self.execute_jump(decoded),
+            | Instruction::BCC(_)
+            | Instruction::BCS(_)
+            | Instruction::BEQ(_)
+            | Instruction::BNE(_)
+            | Instruction::BMI(_)
+            | Instruction::BPL(_)
+            | Instruction::BVC(_)
+            | Instruction::BVS(_) => self.execute_jump(decoded),
 
             // Shift and rotate instructions
             Instruction::ASL(_)

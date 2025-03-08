@@ -1,11 +1,12 @@
-mod token;
-mod macros;
 mod handler;
+mod macros;
+mod token;
 mod tokenizer;
-pub use token::TokenInfo;
-pub use token::Token;
 
-pub struct Lexer{
+pub use token::Token;
+pub use token::TokenInfo;
+
+pub struct Lexer {
     input: &'static str,
     current_line: usize,
     current_column: usize,
@@ -52,9 +53,10 @@ mod tests {
         ";
         let lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
-        
+
         // 수식 확인
-        let expr_tokens: Vec<_> = tokens.iter()
+        let expr_tokens: Vec<_> = tokens
+            .iter()
             .filter_map(|t| {
                 if let Token::Expression(expr) = &t.token {
                     Some(expr.as_str())
@@ -64,23 +66,41 @@ mod tests {
             })
             .collect();
         assert_eq!(expr_tokens, vec!["$1234 + $10"]);
-        
+
         // 간접 주소 지정 확인
         let mut found_indirect_x = false;
         let mut found_indirect_y = false;
-        
+
         for window in tokens.windows(5) {
-            match (&window[0].token, &window[1].token, &window[2].token, &window[3].token, &window[4].token) {
-                (Token::LeftParen, Token::HexNumber(_), Token::Comma, Token::IndexRegister('X'), Token::RightParen) => {
+            match (
+                &window[0].token,
+                &window[1].token,
+                &window[2].token,
+                &window[3].token,
+                &window[4].token,
+            ) {
+                (
+                    Token::LeftParen,
+                    Token::HexNumber(_),
+                    Token::Comma,
+                    Token::IndexRegister('X'),
+                    Token::RightParen,
+                ) => {
                     found_indirect_x = true;
-                },
-                (Token::LeftParen, Token::HexNumber(_), Token::RightParen, Token::Comma, Token::IndexRegister('Y')) => {
+                }
+                (
+                    Token::LeftParen,
+                    Token::HexNumber(_),
+                    Token::RightParen,
+                    Token::Comma,
+                    Token::IndexRegister('Y'),
+                ) => {
                     found_indirect_y = true;
-                },
+                }
                 _ => {}
             }
         }
-        
+
         assert!(found_indirect_x, "간접 X 인덱스 주소 지정이 없음");
         assert!(found_indirect_y, "간접 Y 인덱스 주소 지정이 없음");
     }
@@ -96,15 +116,15 @@ mod tests {
         ";
         let lexer = Lexer::new(input);
         let tokens = lexer.tokenize().unwrap();
-        
+
         // 매크로 토큰들 확인
         let mut found_macro_start = false;
         let mut found_macro_param = false;
         let mut found_macro_end = false;
-        
+
         // 디버깅을 위해 토큰들을 출력
         println!("Tokens: {:?}", tokens);
-        
+
         for token in tokens.iter() {
             match &token.token {
                 Token::Directive(d) if d == ".MACRO" => found_macro_start = true,
@@ -113,7 +133,7 @@ mod tests {
                 _ => {}
             }
         }
-        
+
         assert!(found_macro_start, "매크로 시작이 없음");
         assert!(found_macro_param, "매크로 파라미터가 없음");
         assert!(found_macro_end, "매크로 종료가 없음");

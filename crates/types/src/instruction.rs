@@ -49,14 +49,14 @@ pub enum Instruction {
     ROR(AddressMode), // Rotate Right
 
     // 분기 명령
-    BCC, // Branch if Carry Clear
-    BCS, // Branch if Carry Set
-    BEQ, // Branch if Equal
-    BNE, // Branch if Not Equal
-    BMI, // Branch if Minus
-    BPL, // Branch if Plus
-    BVC, // Branch if Overflow Clear
-    BVS, // Branch if Overflow Set
+    BCC(i8), // Branch if Carry Clear
+    BCS(i8), // Branch if Carry Set
+    BEQ(i8), // Branch if Equal
+    BNE(i8), // Branch if Not Equal
+    BMI(i8), // Branch if Minus
+    BPL(i8), // Branch if Plus
+    BVC(i8), // Branch if Overflow Clear
+    BVS(i8), // Branch if Overflow Set
 
     // 점프/서브루틴
     JMP(AddressMode), // Jump

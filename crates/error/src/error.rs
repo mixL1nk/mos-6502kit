@@ -38,6 +38,7 @@ pub enum Error {
         line: usize,
         column: usize,
     },
+    InvalidAddressingMode(&'static str),
     #[from]
     Io(io::Error),
     // -- External errors

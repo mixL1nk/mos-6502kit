@@ -10,3 +10,4 @@ doctest = false
 common = { path = "../common" }
 error = { path = "../error" }
 cpu = { path = "../cpu" }
+types = { path = "../types" }

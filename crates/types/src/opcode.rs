@@ -212,35 +212,35 @@ pub static OPCODE_MAP: LazyLock<HashMap<u8, InstructionInfo>> = LazyLock::new(||
     // 분기 명령
     map.insert(
         0x90,
-        InstructionInfo::new(Instruction::BCC, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BCC(0), CycleInfo::new(2)),
     );
     map.insert(
         0xB0,
-        InstructionInfo::new(Instruction::BCS, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BCS(0), CycleInfo::new(2)),
     );
     map.insert(
         0xF0,
-        InstructionInfo::new(Instruction::BEQ, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BEQ(0), CycleInfo::new(2)),
     );
     map.insert(
         0xD0,
-        InstructionInfo::new(Instruction::BNE, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BNE(0), CycleInfo::new(2)),
     );
     map.insert(
         0x30,
-        InstructionInfo::new(Instruction::BMI, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BMI(0), CycleInfo::new(2)),
     );
     map.insert(
         0x10,
-        InstructionInfo::new(Instruction::BPL, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BPL(0), CycleInfo::new(2)),
     );
     map.insert(
         0x50,
-        InstructionInfo::new(Instruction::BVC, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BVC(0), CycleInfo::new(2)),
     );
     map.insert(
         0x70,
-        InstructionInfo::new(Instruction::BVS, CycleInfo::new(2)),
+        InstructionInfo::new(Instruction::BVS(0), CycleInfo::new(2)),
     );
 
     // 점프/서브루틴
@@ -397,14 +397,14 @@ pub fn get_opcode_info(instruction: Instruction) -> Option<InstructionInfo> {
         Instruction::INY => OPCODE_MAP.get(&0xC8).copied(),
         Instruction::DEX => OPCODE_MAP.get(&0xCA).copied(),
         Instruction::DEY => OPCODE_MAP.get(&0x88).copied(),
-        Instruction::BCC => OPCODE_MAP.get(&0x90).copied(),
-        Instruction::BCS => OPCODE_MAP.get(&0xB0).copied(),
-        Instruction::BEQ => OPCODE_MAP.get(&0xF0).copied(),
-        Instruction::BNE => OPCODE_MAP.get(&0xD0).copied(),
-        Instruction::BMI => OPCODE_MAP.get(&0x30).copied(),
-        Instruction::BPL => OPCODE_MAP.get(&0x10).copied(),
-        Instruction::BVC => OPCODE_MAP.get(&0x50).copied(),
-        Instruction::BVS => OPCODE_MAP.get(&0x70).copied(),
+        Instruction::BCC(offset) => OPCODE_MAP.get(&0x90).copied(),
+        Instruction::BCS(offset) => OPCODE_MAP.get(&0xB0).copied(),
+        Instruction::BEQ(offset) => OPCODE_MAP.get(&0xF0).copied(),
+        Instruction::BNE(offset) => OPCODE_MAP.get(&0xD0).copied(),
+        Instruction::BMI(offset) => OPCODE_MAP.get(&0x30).copied(),
+        Instruction::BPL(offset) => OPCODE_MAP.get(&0x10).copied(),
+        Instruction::BVC(offset) => OPCODE_MAP.get(&0x50).copied(),
+        Instruction::BVS(offset) => OPCODE_MAP.get(&0x70).copied(),
         Instruction::RTS => OPCODE_MAP.get(&0x60).copied(),
         Instruction::BRK => OPCODE_MAP.get(&0x00).copied(),
         Instruction::RTI => OPCODE_MAP.get(&0x40).copied(),

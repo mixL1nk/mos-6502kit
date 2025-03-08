@@ -16,14 +16,14 @@ impl CPU {
             // 분기 명령어들을 모두 공통 함수로 처리
             instruction => {
                 let (flag, condition) = match instruction {
-                    Instruction::BCC => (StatusRegister::CARRY, false),
-                    Instruction::BCS => (StatusRegister::CARRY, true),
-                    Instruction::BEQ => (StatusRegister::ZERO, true),
-                    Instruction::BNE => (StatusRegister::ZERO, false),
-                    Instruction::BMI => (StatusRegister::NEGATIVE, true),
-                    Instruction::BPL => (StatusRegister::NEGATIVE, false),
-                    Instruction::BVC => (StatusRegister::OVERFLOW, false),
-                    Instruction::BVS => (StatusRegister::OVERFLOW, true),
+                    Instruction::BCC(_) => (StatusRegister::CARRY, false),
+                    Instruction::BCS(_) => (StatusRegister::CARRY, true),
+                    Instruction::BEQ(_) => (StatusRegister::ZERO, true),
+                    Instruction::BNE(_) => (StatusRegister::ZERO, false),
+                    Instruction::BMI(_) => (StatusRegister::NEGATIVE, true),
+                    Instruction::BPL(_) => (StatusRegister::NEGATIVE, false),
+                    Instruction::BVC(_) => (StatusRegister::OVERFLOW, false),
+                    Instruction::BVS(_) => (StatusRegister::OVERFLOW, true),
                     _ => return Err(Error::InvalidInstruction { inst_type: "jump" }),
                 };
 
