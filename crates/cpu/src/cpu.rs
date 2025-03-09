@@ -169,60 +169,77 @@ impl CPU {
 
         let ins = self.instruction.get_instruction_info(opcode);
 
+        // 유효하지 않은 opcode 처리
         if ins.is_none() {
             println!("[CPU] Invalid opcode: 0x{:02X}", opcode);
             self.halt_with_reason(InterruptType::IllegalOpcode);
             return Err(Error::InvalidOpcode(opcode));
         }
+        
         let ins = ins.unwrap();
         println!("[DEBUG] Instruction info: {:?}", ins);
 
+        let operand = self.fetch_operand(&ins)?;
+        Ok(Fetch::new(ins, operand))
+    }
+    
+    /// 명령어의 피연산자(operand) 가져오기
+    fn fetch_operand(&mut self, ins: &types::InstructionInfo) -> Result<Vec<u8>> {
         let need = ins.get_operand_size();
         println!("[DEBUG] Need {} bytes for operand", need);
-
-        let operand = match need {
-            1 => {
-                let operand = if matches!(
-                    ins.instruction,
-                    Instruction::BCC(_)
-                        | Instruction::BCS(_)
-                        | Instruction::BEQ(_)
-                        | Instruction::BNE(_)
-                        | Instruction::BMI(_)
-                        | Instruction::BPL(_)
-                        | Instruction::BVC(_)
-                        | Instruction::BVS(_)
-                ) {
-                    // 분기 명령어의 경우 signed byte로 읽기
-                    let signed_operand = self.read_memory(self.get_pc())? as i8;
-                    println!("[DEBUG] Fetched 1-byte branch offset: {:+}", signed_operand);
-                    signed_operand as u8
-                } else {
-                    let operand = self.read_memory(self.get_pc())?;
-                    println!("[DEBUG] Fetched 1-byte operand: 0x{:02X}", operand);
-                    operand
-                };
-                self.increment_pc(1);
-                vec![operand]
-            }
-            2 => {
-                let low_byte = self.read_memory(self.get_pc())?;
-                self.increment_pc(1);
-                let high_byte = self.read_memory(self.get_pc())?;
-                self.increment_pc(1);
-                println!(
-                    "[DEBUG] Fetched 2-byte operand: 0x{:02X}{:02X}",
-                    high_byte, low_byte
-                );
-                vec![low_byte, high_byte]
-            }
+        
+        match need {
+            0 => Ok(vec![]),
+            1 => self.fetch_one_byte_operand(ins),
+            2 => self.fetch_two_byte_operand(),
             _ => {
-                println!("[DEBUG] No operand needed");
-                vec![]
+                println!("[DEBUG] Unexpected operand size: {}", need);
+                Ok(vec![])
             }
-        };
-
-        Ok(Fetch::new(ins, operand))
+        }
+    }
+    
+    /// 1바이트 피연산자 가져오기 (분기 명령어와 일반 명령어 구분)
+    fn fetch_one_byte_operand(&mut self, ins: &types::InstructionInfo) -> Result<Vec<u8>> {
+        let pc = self.get_pc();
+        
+        // 분기 명령어인지 확인
+        let is_branch = matches!(
+            ins.instruction,
+            Instruction::BCC(_) | Instruction::BCS(_) | Instruction::BEQ(_) |
+            Instruction::BNE(_) | Instruction::BMI(_) | Instruction::BPL(_) |
+            Instruction::BVC(_) | Instruction::BVS(_)
+        );
+        
+        let operand = self.read_memory(pc)?;
+        self.increment_pc(1);
+        
+        if is_branch {
+            // 분기 명령어인 경우 signed byte로 표시
+            let signed_operand = operand as i8;
+            println!("[DEBUG] Fetched 1-byte branch offset: {:+}", signed_operand);
+        } else {
+            println!("[DEBUG] Fetched 1-byte operand: 0x{:02X}", operand);
+        }
+        
+        Ok(vec![operand])
+    }
+    
+    /// 2바이트 피연산자 가져오기
+    fn fetch_two_byte_operand(&mut self) -> Result<Vec<u8>> {
+        let pc = self.get_pc();
+        let low_byte = self.read_memory(pc)?;
+        self.increment_pc(1);
+        
+        let high_byte = self.read_memory(self.get_pc())?;
+        self.increment_pc(1);
+        
+        println!(
+            "[DEBUG] Fetched 2-byte operand: 0x{:02X}{:02X}",
+            high_byte, low_byte
+        );
+        
+        Ok(vec![low_byte, high_byte])
     }
 
     /// 메모리 읽기 (MemoryBus 사용)

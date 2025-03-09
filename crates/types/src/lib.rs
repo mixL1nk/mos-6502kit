@@ -1,6 +1,6 @@
 mod address_mode;
 mod instruction;
-mod opcode;
+pub mod opcode;
 
 pub use address_mode::AddressMode;
 pub use instruction::{CycleInfo, Instruction, InstructionInfo};
