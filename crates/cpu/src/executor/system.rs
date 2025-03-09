@@ -6,9 +6,9 @@ impl CPU {
     pub(super) fn execute_system(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
             "[CPU] Executing system instruction: {:?}",
-            decoded.info.instruction
+            decoded.instruction
         );
-        match decoded.info.instruction {
+        match decoded.instruction {
             Instruction::BRK => self.brk(),
             Instruction::RTI => self.rti(),
             Instruction::NOP => self.nop(),
@@ -21,22 +21,18 @@ impl CPU {
     fn brk(&mut self) -> Result<()> {
         println!("[CPU] Executing BRK");
         let pc = self.get_pc();
-        let p = self.get_value(RegisterType::P).as_u8();
+        let mut p = self.get_value(RegisterType::P).as_u8();
 
         // Push PC+2 onto stack (PC+1 for the BRK instruction, +1 for the padding byte)
         self.stack_push_u16(pc.wrapping_add(2))?;
 
-        // Push status register onto stack with Break flag set
-        self.stack_push(p | 0x10)?;
+        // Set Break flag and push status register onto stack
+        p |= 0x10; // Set Break flag
+        self.stack_push(p)?;
 
-        // Set interrupt disable flag
-        self.set_value(RegisterType::P, RegisterData::Bit8(p | 0x04));
-
-        // // Load interrupt vector
-        // let low = self.read_memory(0xFFFE)?;
-        // let high = self.read_memory(0xFFFF)?;
-        // let irq_vector = ((high as u16) << 8) | (low as u16);
-        // self.set_pc(irq_vector);
+        // Set Interrupt Disable flag while preserving other flags
+        p |= 0x04; // Set Interrupt Disable flag
+        self.set_value(RegisterType::P, RegisterData::Bit8(p));
 
         // Halt CPU with BRK reason
         self.halt_with_reason(crate::cpu::InterruptType::BRK);

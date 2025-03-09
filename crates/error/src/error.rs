@@ -43,6 +43,10 @@ pub enum Error {
     Io(io::Error),
     // -- External errors
     // not yet implemented
+    UndefinedLabel(String),
+    BranchOutOfRange(String),
+    InvalidDirectiveOperand(&'static str),
+    UnexpectedEndOfInput,
 }
 
 impl core::fmt::Display for Error {

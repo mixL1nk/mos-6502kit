@@ -1,11 +1,11 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TokenInfo {
     pub token: Token,
     pub line: usize,
     pub column: usize,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     // 1. 기본 구성요소
     Mnemonic(String), // LDA, STA, BEQ 등 명령어

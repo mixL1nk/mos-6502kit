@@ -1,84 +1,83 @@
-use crate::address_mode::AddressMode;
+use super::AddressModeValue;
 
-#[derive(Debug, Clone, Copy)]
+/// 명령어 집합
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Instruction {
-    // 로드/스토어
-    LDA(AddressMode), // Load Accumulator
-    LDX(AddressMode), // Load X Register
-    LDY(AddressMode), // Load Y Register
-    STA(AddressMode), // Store Accumulator
-    STX(AddressMode), // Store X Register
-    STY(AddressMode), // Store Y Register
-
-    // 스택 연산
-    PHA, // Push Accumulator
-    PLA, // Pull Accumulator
-    PHP, // Push Processor Status
-    PLP, // Pull Processor Status
-
-    // 레지스터 연산
-    TAX, // Transfer Accumulator to X
-    TXA, // Transfer X to Accumulator
-    TAY, // Transfer Accumulator to Y
-    TYA, // Transfer Y to Accumulator
-    TSX, // Transfer Stack Pointer to X
-    TXS, // Transfer X to Stack Pointer
+    // 로드/스토어 명령어
+    LDA(AddressModeValue),
+    LDX(AddressModeValue),
+    LDY(AddressModeValue),
+    STA(AddressModeValue),
+    STX(AddressModeValue),
+    STY(AddressModeValue),
 
     // 산술/논리 연산
-    ADC(AddressMode), // Add with Carry
-    SBC(AddressMode), // Subtract with Carry
-    AND(AddressMode), // Logical AND
-    ORA(AddressMode), // Logical OR
-    EOR(AddressMode), // Logical Exclusive OR
-    CMP(AddressMode), // Compare with Accumulator
-    CPX(AddressMode), // Compare with X
-    CPY(AddressMode), // Compare with Y
+    ADC(AddressModeValue),
+    SBC(AddressModeValue),
+    AND(AddressModeValue),
+    ORA(AddressModeValue),
+    EOR(AddressModeValue),
 
-    // 증감 연산
-    INC(AddressMode), // Increment Memory
-    INX,              // Increment X
-    INY,              // Increment Y
-    DEC(AddressMode), // Decrement Memory
-    DEX,              // Decrement X
-    DEY,              // Decrement Y
+    // 시프트/회전
+    ASL(AddressModeValue),
+    LSR(AddressModeValue),
+    ROL(AddressModeValue),
+    ROR(AddressModeValue),
 
-    // 시프트 연산
-    ASL(AddressMode), // Arithmetic Shift Left
-    LSR(AddressMode), // Logical Shift Right
-    ROL(AddressMode), // Rotate Left
-    ROR(AddressMode), // Rotate Right
+    // 증감
+    INC(AddressModeValue),
+    DEC(AddressModeValue),
+    INX,
+    INY,
+    DEX,
+    DEY,
 
-    // 분기 명령
-    BCC(i8), // Branch if Carry Clear
-    BCS(i8), // Branch if Carry Set
-    BEQ(i8), // Branch if Equal
-    BNE(i8), // Branch if Not Equal
-    BMI(i8), // Branch if Minus
-    BPL(i8), // Branch if Plus
-    BVC(i8), // Branch if Overflow Clear
-    BVS(i8), // Branch if Overflow Set
+    // 비교
+    CMP(AddressModeValue),
+    CPX(AddressModeValue),
+    CPY(AddressModeValue),
+    BIT(AddressModeValue),
 
-    // 점프/서브루틴
-    JMP(AddressMode), // Jump
-    JSR(AddressMode), // Jump to Subroutine
-    RTS,              // Return from Subroutine
+    // 점프/분기
+    JMP(AddressModeValue),
+    JSR(AddressModeValue),
+    RTS,
+    BCC(i8),
+    BCS(i8),
+    BEQ(i8),
+    BNE(i8),
+    BMI(i8),
+    BPL(i8),
+    BVC(i8),
+    BVS(i8),
 
-    // 인터럽트
-    BRK, // Break
-    RTI, // Return from Interrupt
+    // 레지스터 전송
+    TAX,
+    TXA,
+    TAY,
+    TYA,
+    TSX,
+    TXS,
+
+    // 스택 처리
+    PHA,
+    PLA,
+    PHP,
+    PLP,
+
+    // 플래그 설정
+    CLC,
+    SEC,
+    CLI,
+    SEI,
+    CLV,
+    CLD,
+    SED,
 
     // 기타
-    CLC, // Clear Carry Flag
-    SEC, // Set Carry Flag
-    CLI, // Clear Interrupt Disable
-    SEI, // Set Interrupt Disable
-    CLD, // Clear Decimal Mode
-    SED, // Set Decimal Mode
-    CLV, // Clear Overflow Flag
-    NOP, // No Operation
-
-    // 논리 연산
-    BIT(AddressMode), // Bit Test
+    BRK,
+    RTI,
+    NOP,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -96,15 +95,61 @@ impl InstructionInfo {
     }
     pub fn get_operand_size(&self) -> u8 {
         match &self.instruction {
-            Instruction::LDA(mode) => mode.operand_size(),
-            Instruction::LDX(mode) => mode.operand_size(),
-            Instruction::LDY(mode) => mode.operand_size(),
-            Instruction::STA(mode) => mode.operand_size(),
-            Instruction::INC(mode) => mode.operand_size(),
-            Instruction::DEC(mode) => mode.operand_size(),
-            Instruction::JMP(mode) => mode.operand_size(),
-            Instruction::JSR(mode) => mode.operand_size(),
-            _ => 0, // 기본적으로 Operand가 없는 경우
+            Instruction::LDA(mode)
+            | Instruction::LDX(mode)
+            | Instruction::LDY(mode)
+            | Instruction::STA(mode)
+            | Instruction::STX(mode)
+            | Instruction::STY(mode)
+            | Instruction::ADC(mode)
+            | Instruction::SBC(mode)
+            | Instruction::AND(mode)
+            | Instruction::ORA(mode)
+            | Instruction::EOR(mode)
+            | Instruction::CMP(mode)
+            | Instruction::CPX(mode)
+            | Instruction::CPY(mode)
+            | Instruction::BIT(mode)
+            | Instruction::INC(mode)
+            | Instruction::DEC(mode)
+            | Instruction::ASL(mode)
+            | Instruction::LSR(mode)
+            | Instruction::ROL(mode)
+            | Instruction::ROR(mode) => match mode {
+                AddressModeValue::Immediate(_)
+                | AddressModeValue::ZeroPage(_)
+                | AddressModeValue::ZeroPageX(_)
+                | AddressModeValue::ZeroPageY(_)
+                | AddressModeValue::IndirectX(_)
+                | AddressModeValue::IndirectY(_) => 1,
+                AddressModeValue::Absolute(_)
+                | AddressModeValue::AbsoluteX(_)
+                | AddressModeValue::AbsoluteY(_)
+                | AddressModeValue::Indirect(_) => 2,
+                AddressModeValue::Accumulator | AddressModeValue::Implied => 0,
+            },
+            Instruction::JMP(mode) | Instruction::JSR(mode) => match mode {
+                AddressModeValue::Absolute(_) | AddressModeValue::Indirect(_) => 2,
+                AddressModeValue::Immediate(_)
+                | AddressModeValue::ZeroPage(_)
+                | AddressModeValue::ZeroPageX(_)
+                | AddressModeValue::ZeroPageY(_)
+                | AddressModeValue::IndirectX(_)
+                | AddressModeValue::IndirectY(_)
+                | AddressModeValue::AbsoluteX(_)
+                | AddressModeValue::AbsoluteY(_)
+                | AddressModeValue::Accumulator
+                | AddressModeValue::Implied => 0,
+            },
+            Instruction::BCC(_)
+            | Instruction::BCS(_)
+            | Instruction::BEQ(_)
+            | Instruction::BNE(_)
+            | Instruction::BMI(_)
+            | Instruction::BPL(_)
+            | Instruction::BVC(_)
+            | Instruction::BVS(_) => 1,
+            _ => 0,
         }
     }
 }

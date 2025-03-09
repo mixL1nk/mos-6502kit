@@ -10,7 +10,7 @@ use crate::lexer::TokenInfo;
 use crate::lexer::macros::DIRECTIVES;
 use crate::lexer::macros::MNEMONICS;
 
-impl Lexer {
+impl Lexer<'_> {
     pub(crate) fn handle_identifier(&mut self, chars: &mut Peekable<Chars>) -> Result<TokenInfo> {
         let mut identifier = String::new();
 

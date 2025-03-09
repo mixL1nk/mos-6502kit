@@ -7,9 +7,9 @@ impl CPU {
     pub(super) fn execute_stack(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
             "[CPU] Executing stack instruction: {:?}",
-            decoded.info.instruction
+            decoded.instruction
         );
-        match decoded.info.instruction {
+        match decoded.instruction {
             Instruction::PHA => self.pha(),
             Instruction::PHP => self.php(),
             Instruction::PLA => self.pla(),

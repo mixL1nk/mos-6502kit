@@ -11,7 +11,7 @@ enum TokenizeResult {
     Skip,
 }
 
-impl Lexer {
+impl Lexer<'_> {
     pub fn tokenize(mut self) -> Result<Vec<TokenInfo>> {
         let mut tokens = Vec::new();
         let mut chars = self.input.chars().peekable();
@@ -204,7 +204,8 @@ impl Lexer {
 
         // 직전 토큰이 # 인 경우에만 Expression으로 처리
         if tokens
-            .last().is_some_and(|t| matches!(t.token, Token::Hash))
+            .last()
+            .is_some_and(|t| matches!(t.token, Token::Hash))
         {
             Ok(TokenizeResult::Token(self.handle_expression(chars)?))
         } else {

@@ -1,11 +1,11 @@
 //! CPU 에 대한 기본 정보
-use crate::instruction::InstructionDecoder;
+use crate::instruction::{Fetch, InstructionDecoder};
 use crate::register::{RegisterData, RegisterType, Registers, SpecialRegister8, StatusRegister};
 use common::MemoryBus;
 use common::Result;
 use error::Error;
 use std::sync::{Arc, Mutex};
-use types::InstructionInfo;
+use types::Instruction;
 
 /// CPU 인터럽트 타입
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -43,19 +43,6 @@ pub struct CPU {
     state: CPUState,
     /// 현재 명령어의 사이클 정보
     cycles: u8,
-}
-pub struct Fetch {
-    pub instruction_info: InstructionInfo,
-    pub operand: Vec<u8>,
-}
-
-impl Fetch {
-    fn new(instruction_info: InstructionInfo, operand: Vec<u8>) -> Self {
-        Self {
-            instruction_info,
-            operand,
-        }
-    }
 }
 
 impl Default for CPU {
@@ -155,7 +142,7 @@ impl CPU {
     }
 
     /// PC 레지스터 값 설정
-    pub(crate) fn set_pc(&mut self, value: u16) {
+    pub fn set_pc(&mut self, value: u16) {
         self.registers
             .set_value(RegisterType::PC, RegisterData::Bit16(value));
     }
@@ -178,12 +165,43 @@ impl CPU {
     fn fetch(&mut self) -> Result<Fetch> {
         // PC 레지스터에서 주소 가져오기
         let opcode = self.fetch_opcode()?;
-        let ins = self.instruction.get_instruction_info(opcode).unwrap();
+        println!("[DEBUG] Fetched opcode: 0x{:02X}", opcode);
+
+        let ins = self.instruction.get_instruction_info(opcode);
+
+        if ins.is_none() {
+            println!("[CPU] Invalid opcode: 0x{:02X}", opcode);
+            self.halt_with_reason(InterruptType::IllegalOpcode);
+            return Err(Error::InvalidOpcode(opcode));
+        }
+        let ins = ins.unwrap();
+        println!("[DEBUG] Instruction info: {:?}", ins);
+
         let need = ins.get_operand_size();
+        println!("[DEBUG] Need {} bytes for operand", need);
+
         let operand = match need {
             1 => {
-                let operand = self.read_memory(self.get_pc())?;
-                println!("[CPU] Fetched operand: 0x{:02X}", operand);
+                let operand = if matches!(
+                    ins.instruction,
+                    Instruction::BCC(_)
+                        | Instruction::BCS(_)
+                        | Instruction::BEQ(_)
+                        | Instruction::BNE(_)
+                        | Instruction::BMI(_)
+                        | Instruction::BPL(_)
+                        | Instruction::BVC(_)
+                        | Instruction::BVS(_)
+                ) {
+                    // 분기 명령어의 경우 signed byte로 읽기
+                    let signed_operand = self.read_memory(self.get_pc())? as i8;
+                    println!("[DEBUG] Fetched 1-byte branch offset: {:+}", signed_operand);
+                    signed_operand as u8
+                } else {
+                    let operand = self.read_memory(self.get_pc())?;
+                    println!("[DEBUG] Fetched 1-byte operand: 0x{:02X}", operand);
+                    operand
+                };
                 self.increment_pc(1);
                 vec![operand]
             }
@@ -192,11 +210,14 @@ impl CPU {
                 self.increment_pc(1);
                 let high_byte = self.read_memory(self.get_pc())?;
                 self.increment_pc(1);
-                let operand = u16::from_le_bytes([low_byte, high_byte]);
-                println!("[CPU] Fetched operand: 0x{:04X}", operand);
+                println!(
+                    "[DEBUG] Fetched 2-byte operand: 0x{:02X}{:02X}",
+                    high_byte, low_byte
+                );
                 vec![low_byte, high_byte]
             }
             _ => {
+                println!("[DEBUG] No operand needed");
                 vec![]
             }
         };
@@ -266,15 +287,20 @@ impl CPU {
 
         // 1. 명령어 가져오기
         let fetch = self.fetch()?;
-        println!("[CPU] Fetched instruction: {:?}", fetch.instruction_info);
         let decode = self.instruction.decode(fetch)?;
 
         // 2. 사이클 설정
-        self.cycles = decode.total_cycles;
+        self.cycles = decode.cycles;
 
         // 3. 명령어 실행
         self.execute(decode)?;
 
+        println!("[DEBUG] PC: {:?}", self.get_pc());
+        println!("[DEBUG] P: {:?}", self.status_flag());
+        println!("[DEBUG] A: {:?}", self.get_value(RegisterType::A));
+        println!("[DEBUG] X: {:?}", self.get_value(RegisterType::X));
+        println!("[DEBUG] Y: {:?}", self.get_value(RegisterType::Y));
+        // println!("{}", self.dump_flag());
         println!("[CPU] Instruction completed in {} cycles", self.cycles);
         Ok(())
     }
@@ -381,30 +407,77 @@ impl CPU {
         Ok(())
     }
 
-    /// 페이지 경계를 넘었는지 확인
-    pub(crate) fn check_page_cross(&self, addr1: u16, addr2: u16) -> bool {
-        (addr1 & 0xFF00) != (addr2 & 0xFF00)
+    /// 사이클 추가
+    pub(crate) fn add_cycles(&mut self, cycles: u8) {
+        self.cycles += cycles;
     }
 
-    /// 사이클 카운트 업데이트
-    pub(crate) fn update_cycles(
-        &mut self,
-        info: &InstructionInfo,
-        page_cross: bool,
-        branch_taken: bool,
-    ) {
-        self.cycles = info.cycles.base_cycles;
-        if page_cross && info.cycles.page_cross {
-            self.cycles += 1;
-        }
-        if branch_taken && info.cycles.branch_taken {
-            self.cycles += 1;
-        }
-    }
-
-    /// 현재 사이클 수 반환
+    /// 현재 사이클 수 가져오기
     pub fn get_cycles(&self) -> u8 {
         self.cycles
+    }
+
+    /// 플래그 레지스터(P)의 상태를 읽기 쉽게 출력합니다
+    pub fn dump_flag(&self) -> String {
+        let flags = self.registers.get_value(RegisterType::P).as_u8();
+        let n = (flags >> 7) & 1;
+        let v = (flags >> 6) & 1;
+        let u = (flags >> 5) & 1; // 미사용 플래그 (항상 1)
+        let b = (flags >> 4) & 1;
+        let d = (flags >> 3) & 1;
+        let i = (flags >> 2) & 1;
+        let z = (flags >> 1) & 1;
+        let c = flags & 1;
+
+        let binary = format!("{:08b}", flags);
+
+        let mut result = format!("{}\n", binary);
+        result.push_str("||||||\\- Carry (C) = ");
+        result.push_str(&format!("{} {}\n", c, if c == 1 { "✓" } else { "✗" }));
+
+        result.push_str("|||||\\-- Zero (Z) = ");
+        result.push_str(&format!("{} {}\n", z, if z == 1 { "✓" } else { "✗" }));
+
+        result.push_str("||||\\--- Interrupt (I) = ");
+        result.push_str(&format!(
+            "{} {}\n",
+            i,
+            if i == 1 {
+                "✓ (IRQ 비활성화)"
+            } else {
+                "✗ (IRQ 활성화)"
+            }
+        ));
+
+        result.push_str("|||\\---- Decimal (D) = ");
+        result.push_str(&format!("{} {}\n", d, if d == 1 { "✓" } else { "✗" }));
+
+        result.push_str("||\\----- Break (B) = ");
+        result.push_str(&format!("{} {}\n", b, if b == 1 { "✓" } else { "✗" }));
+
+        result.push_str("|\\------ Unused = ");
+        result.push_str(&format!(
+            "{} {}\n",
+            u,
+            if u == 1 {
+                "✓ (항상 1)"
+            } else {
+                "✗ (오류!)"
+            }
+        ));
+
+        result.push_str("\\------- Overflow (V) = ");
+        result.push_str(&format!("{} {}\n", v, if v == 1 { "✓" } else { "✗" }));
+
+        result.push_str("-------- Negative (N) = ");
+        result.push_str(&format!("{} {}", n, if n == 1 { "✓" } else { "✗" }));
+
+        result
+    }
+
+    /// 플래그 레지스터의 상태를 콘솔에 출력합니다
+    pub fn print_flags(&self) {
+        println!("{}", self.dump_flag());
     }
 }
 

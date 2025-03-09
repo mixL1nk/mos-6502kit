@@ -1,15 +1,15 @@
 use crate::{CPU, instruction::DecodedInstruction, register::StatusRegister};
 use common::Result;
 use error::Error;
-use types::{AddressMode, Instruction};
+use types::{AddressModeValue, Instruction};
 
 impl CPU {
     pub(super) fn execute_jump(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
             "[CPU] Executing jump instruction: {:?}",
-            decoded.info.instruction
+            decoded.instruction
         );
-        match decoded.info.instruction {
+        match decoded.instruction {
             Instruction::JMP(mode) => self.jmp(mode, decoded),
             Instruction::JSR(mode) => self.jsr(mode, decoded),
             Instruction::RTS => self.rts(),
@@ -29,7 +29,7 @@ impl CPU {
 
                 println!(
                     "[CPU] Executing branch instruction: {:?} with offset: 0x{:02X}",
-                    instruction, decoded.operand
+                    instruction, decoded.operand_value
                 );
 
                 self.branch_if_flag(flag, condition, decoded)
@@ -44,53 +44,65 @@ impl CPU {
         expected_state: bool,
         decode: DecodedInstruction,
     ) -> Result<()> {
-        // get_flag로 플래그 상태 확인
         let branch_taken = self.get_flag(flag) == expected_state;
+        println!("[DEBUG] Branch taken: {}", branch_taken);
 
         if branch_taken {
-            let offset = decode.operand as i8;
-            let old_pc = self.get_pc();
-            let new_pc = ((old_pc as i32) + (offset as i32)) as u16;
+            // 오퍼랜드를 signed byte로 처리
+            let offset = decode.operand_value as i8;
+            let pc = self.get_pc();
 
-            // 페이지 경계를 넘었는지 확인
-            let page_cross = self.check_page_cross(old_pc, new_pc);
+            // PC 상대 주소 계산 - PC는 이미 다음 명령어를 가리키고 있으므로 offset만 더함
+            let new_pc = pc.wrapping_add(offset as u16);
 
-            // 사이클 카운트 업데이트
-            self.update_cycles(&decode.info, page_cross, branch_taken);
+            // 페이지 경계를 넘어가는지 확인
+            let page_crossed = (pc & 0xFF00) != (new_pc & 0xFF00);
+
+            // 분기 성공 시 1 사이클 추가
+            self.add_cycles(1);
+
+            // 페이지 경계를 넘어가면 추가 1 사이클
+            if page_crossed {
+                self.add_cycles(1);
+            }
+
+            println!(
+                "[DEBUG] Branch from {:04X} to {:04X} (offset: {:+})",
+                pc, new_pc, offset
+            );
+            if page_crossed {
+                println!("[DEBUG] Page boundary crossed, added extra cycle");
+            }
 
             self.set_pc(new_pc);
-        } else {
-            // 분기가 발생하지 않은 경우 기본 사이클만
-            self.update_cycles(&decode.info, false, false);
         }
 
         Ok(())
     }
 
     // 기존 jmp, jsr, rts 함수는 그대로 유지
-    fn jmp(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing JMP to address: 0x{:04X}", decode.operand);
-        self.set_pc(decode.operand);
+    fn jmp(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
+        println!(
+            "[CPU] Executing JMP to address: 0x{:04X}",
+            decode.operand_value
+        );
+        self.set_pc(decode.operand_value);
         Ok(())
     }
 
-    fn jsr(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing JSR to address: 0x{:04X}", decode.operand);
-        // Get current PC (points to next instruction)
+    fn jsr(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
+        println!(
+            "[CPU] Executing JSR to address: 0x{:04X}",
+            decode.operand_value
+        );
         let return_addr = self.get_pc().wrapping_sub(1);
-
-        // Push return address onto stack
         self.stack_push_u16(return_addr)?;
-
-        // Jump to subroutine
-        self.set_pc(decode.operand);
+        self.set_pc(decode.operand_value);
         Ok(())
     }
 
     fn rts(&mut self) -> Result<()> {
         println!("[CPU] Executing RTS");
-
-        // Pull return address from stack and add 1
         let return_addr = self.stack_pull_u16()?.wrapping_add(1);
         self.set_pc(return_addr);
         Ok(())

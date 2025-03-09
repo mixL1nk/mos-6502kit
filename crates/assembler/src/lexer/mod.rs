@@ -6,16 +6,16 @@ mod tokenizer;
 pub use token::Token;
 pub use token::TokenInfo;
 
-pub struct Lexer {
-    input: &'static str,
+pub struct Lexer<'a> {
+    input: &'a str,
     current_line: usize,
     current_column: usize,
     in_macro: bool,
     last_token_was_macro: bool,
 }
 
-impl Lexer {
-    pub fn new(input: &'static str) -> Self {
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a str) -> Self {
         Lexer {
             input,
             current_line: 1,

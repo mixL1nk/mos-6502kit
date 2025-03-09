@@ -1,30 +1,45 @@
-use crate::cpu::Fetch;
 use common::Result;
-use std::sync::LazyLock;
 use types::OPCODE_MAP;
-use types::{AddressMode, Instruction, InstructionInfo};
+pub use types::{AddressModeValue, Instruction, InstructionInfo};
 
 /// 명령어 디코딩 결과를 담는 구조체
 #[derive(Debug)]
 pub struct DecodedInstruction {
-    /// 디코딩된 명령어 정보
-    pub info: InstructionInfo,
-    /// 명령어의 바이트 수 (opcode + operand)
-    pub bytes: u8,
-    /// 명령어의 operand 값
-    pub operand: u16,
-    /// 페이지 경계를 넘었는지 여부
-    pub page_crossed: bool,
-    /// 실제 실행에 필요한 사이클 수
-    pub total_cycles: u8,
+    pub instruction: Instruction,
+    pub bytes_count: u8,
+    pub operand_value: u16,
+    pub cycles: u8,
+}
+
+impl DecodedInstruction {
+    pub fn new(instruction: Instruction, bytes_count: u8, operand_value: u16, cycles: u8) -> Self {
+        Self {
+            instruction,
+            bytes_count,
+            operand_value,
+            cycles,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Fetch {
+    pub instruction_info: InstructionInfo,
+    pub operand: Vec<u8>,
+}
+
+impl Fetch {
+    pub fn new(instruction_info: InstructionInfo, operand: Vec<u8>) -> Self {
+        Self {
+            instruction_info,
+            operand,
+        }
+    }
 }
 
 /// 명령어 디코더
 #[derive(Debug)]
-pub struct InstructionDecoder {
-    /// opcode 테이블
-    opcode_table: &'static [Option<InstructionInfo>; 256],
-}
+pub struct InstructionDecoder;
 
 impl Default for InstructionDecoder {
     fn default() -> Self {
@@ -33,37 +48,21 @@ impl Default for InstructionDecoder {
 }
 
 impl InstructionDecoder {
-    /// 새로운 디코더 인스턴스 생성
     pub fn new() -> Self {
-        static OPCODE_TABLE: LazyLock<[Option<InstructionInfo>; 256]> = LazyLock::new(|| {
-            let mut table = [None; 256];
-
-            for (opcode, info) in OPCODE_MAP.iter() {
-                table[*opcode as usize] = Some(*info);
-            }
-
-            table
-        });
-
-        Self {
-            opcode_table: &OPCODE_TABLE,
-        }
+        Self
     }
 
     pub fn get_instruction_info(&self, opcode: u8) -> Option<InstructionInfo> {
-        self.opcode_table[opcode as usize]
+        OPCODE_MAP.get(&opcode).copied()
     }
 
-    /// 명령어 디코딩
     pub fn decode(&self, fetch: Fetch) -> Result<DecodedInstruction> {
-        let Fetch {
-            instruction_info,
-            operand,
-        } = fetch;
-        let inst = instruction_info.instruction;
-
-        // 주소 모드 추출
-        let address_mode = match inst {
+        let info = fetch.instruction_info;
+        let operand = fetch.operand;
+        println!("[DEBUG] opcode: {:?}", info.instruction);
+        println!("[DEBUG] operand: {:?}", operand);
+        // 어드레싱 모드 추출 및 수정
+        let address_mode: AddressModeValue = match info.instruction {
             Instruction::LDA(mode)
             | Instruction::LDX(mode)
             | Instruction::LDY(mode)
@@ -86,47 +85,115 @@ impl InstructionDecoder {
             | Instruction::ROR(mode)
             | Instruction::JMP(mode)
             | Instruction::JSR(mode)
-            | Instruction::BIT(mode) => mode,
-            _ => AddressMode::Implied, // 묵시적 주소 모드
+            | Instruction::BIT(mode) => match mode {
+                AddressModeValue::Immediate(_) => AddressModeValue::Immediate(operand[0]),
+                AddressModeValue::Absolute(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::Absolute(addr)
+                }
+                AddressModeValue::ZeroPage(_) => AddressModeValue::ZeroPage(operand[0]),
+                AddressModeValue::ZeroPageX(_) => AddressModeValue::ZeroPageX(operand[0]),
+                AddressModeValue::ZeroPageY(_) => AddressModeValue::ZeroPageY(operand[0]),
+                AddressModeValue::AbsoluteX(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::AbsoluteX(addr)
+                }
+                AddressModeValue::AbsoluteY(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::AbsoluteY(addr)
+                }
+                AddressModeValue::IndirectX(_) => AddressModeValue::IndirectX(operand[0]),
+                AddressModeValue::IndirectY(_) => AddressModeValue::IndirectY(operand[0]),
+                AddressModeValue::Indirect(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::Indirect(addr)
+                }
+                _ => mode,
+            },
+            _ => AddressModeValue::Implied,
+        };
+
+        // 명령어 재구성
+        let instruction = match info.instruction {
+            Instruction::LDA(_) => Instruction::LDA(address_mode),
+            Instruction::LDX(_) => Instruction::LDX(address_mode),
+            Instruction::LDY(_) => Instruction::LDY(address_mode),
+            Instruction::STA(_) => Instruction::STA(address_mode),
+            Instruction::STX(_) => Instruction::STX(address_mode),
+            Instruction::STY(_) => Instruction::STY(address_mode),
+            Instruction::ADC(_) => Instruction::ADC(address_mode),
+            Instruction::SBC(_) => Instruction::SBC(address_mode),
+            Instruction::AND(_) => Instruction::AND(address_mode),
+            Instruction::ORA(_) => Instruction::ORA(address_mode),
+            Instruction::EOR(_) => Instruction::EOR(address_mode),
+            Instruction::CMP(_) => Instruction::CMP(address_mode),
+            Instruction::CPX(_) => Instruction::CPX(address_mode),
+            Instruction::CPY(_) => Instruction::CPY(address_mode),
+            Instruction::INC(_) => Instruction::INC(address_mode),
+            Instruction::DEC(_) => Instruction::DEC(address_mode),
+            Instruction::ASL(_) => Instruction::ASL(address_mode),
+            Instruction::LSR(_) => Instruction::LSR(address_mode),
+            Instruction::ROL(_) => Instruction::ROL(address_mode),
+            Instruction::ROR(_) => Instruction::ROR(address_mode),
+            Instruction::JMP(_) => Instruction::JMP(address_mode),
+            Instruction::JSR(_) => Instruction::JSR(address_mode),
+            Instruction::BIT(_) => Instruction::BIT(address_mode),
+            _ => info.instruction,
         };
 
         // 명령어 크기와 피연산자 값, 페이지 경계 계산
         let (bytes_count, operand_value, page_crossed) = match address_mode {
-            AddressMode::Immediate => (2, operand[0] as u16, false),
-            AddressMode::ZeroPage => (2, operand[0] as u16, false),
-            AddressMode::ZeroPageX | AddressMode::ZeroPageY => (2, operand[0] as u16, false),
-            AddressMode::Absolute => (3, ((operand[1] as u16) << 8) | operand[0] as u16, false),
-            AddressMode::AbsoluteX | AddressMode::AbsoluteY => {
+            AddressModeValue::Immediate(_) => (2, operand[0] as u16, false),
+            AddressModeValue::ZeroPage(_) => (2, operand[0] as u16, false),
+            AddressModeValue::ZeroPageX(_) | AddressModeValue::ZeroPageY(_) => {
+                (2, operand[0] as u16, false)
+            }
+            AddressModeValue::Absolute(_) => {
+                (3, ((operand[1] as u16) << 8) | operand[0] as u16, false)
+            }
+            AddressModeValue::AbsoluteX(_) | AddressModeValue::AbsoluteY(_) => {
                 let base = ((operand[1] as u16) << 8) | operand[0] as u16;
-                // 페이지 경계를 넘었는지 확인
-                // 엄밀히는 인덱스 레지스터를 더했을 때 경계를 넘는지 확인해야 하지만,
-                // 실제 인덱스 값을 여기서는 알 수 없으므로 +1로 추정
                 let crosses = (base & 0xFF00) != ((base + 1) & 0xFF00);
                 (3, base, crosses)
             }
-            AddressMode::Indirect => (3, ((operand[1] as u16) << 8) | operand[0] as u16, false),
-            AddressMode::IndirectX => (2, operand[0] as u16, false),
-            AddressMode::IndirectY => {
+            AddressModeValue::Indirect(_) => {
+                (3, ((operand[1] as u16) << 8) | operand[0] as u16, false)
+            }
+            AddressModeValue::IndirectX(_) => (2, operand[0] as u16, false),
+            AddressModeValue::IndirectY(_) => {
                 let base = operand[0] as u16;
                 let crosses = (base & 0xFF00) != ((base + 1) & 0xFF00);
                 (2, base, crosses)
             }
-            AddressMode::Relative => (2, operand[0] as u16, false),
-            AddressMode::Accumulator | AddressMode::Implied => (1, 0, false),
+            AddressModeValue::Accumulator | AddressModeValue::Implied => (1, 0, false),
+        };
+
+        // 분기 명령어인 경우 operand_value를 signed byte로 처리
+        let operand_value = match info.instruction {
+            Instruction::BCC(_)
+            | Instruction::BCS(_)
+            | Instruction::BEQ(_)
+            | Instruction::BNE(_)
+            | Instruction::BMI(_)
+            | Instruction::BPL(_)
+            | Instruction::BVC(_)
+            | Instruction::BVS(_) => operand[0] as i8 as u16,
+            _ => operand_value,
         };
 
         // 총 사이클 수 계산
-        let mut total_cycles = instruction_info.cycles.base_cycles;
-        if page_crossed && instruction_info.cycles.page_cross {
-            total_cycles += 1;
+        let mut cycles = info.cycles.base_cycles;
+        if page_crossed {
+            cycles += 1;
         }
-
-        Ok(DecodedInstruction {
-            info: instruction_info,
-            bytes: bytes_count,
-            operand: operand_value,
-            page_crossed,
-            total_cycles,
-        })
+        if info.cycles.branch_taken {
+            cycles += 1;
+        }
+        Ok(DecodedInstruction::new(
+            instruction,
+            bytes_count,
+            operand_value,
+            cycles,
+        ))
     }
 }

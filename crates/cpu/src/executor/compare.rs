@@ -1,15 +1,110 @@
-use crate::{CPU, RegisterType, instruction::DecodedInstruction, register::StatusRegister};
+use crate::{
+    cpu::CPU,
+    instruction::DecodedInstruction,
+    register::{RegisterType, StatusRegister},
+};
 use common::Result;
 use error::Error;
-use types::{AddressMode, Instruction};
+use types::{AddressModeValue, Instruction};
+
+/// 비교 연산 구현
+pub trait CompareOperation {
+    /// CMP - Compare Memory with Accumulator
+    fn cmp(&mut self, mode: AddressModeValue, decode: DecodedInstruction) -> Result<()>;
+
+    /// CPX - Compare Memory with X Register
+    fn cpx(&mut self, mode: AddressModeValue, decode: DecodedInstruction) -> Result<()>;
+
+    /// CPY - Compare Memory with Y Register
+    fn cpy(&mut self, mode: AddressModeValue, decode: DecodedInstruction) -> Result<()>;
+}
+
+impl CompareOperation for CPU {
+    fn cmp(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
+        println!(
+            "[CPU] Executing CMP with operand: 0x{:02X}",
+            decode.operand_value
+        );
+        let value = match _mode {
+            AddressModeValue::Immediate(val) => {
+                println!("[DEBUG] CMP immediate value: 0x{:02X}", val);
+                val
+            }
+            _ => {
+                let mem_val = self.read_memory(decode.operand_value)?;
+                println!("[DEBUG] CMP memory value: 0x{:02X}", mem_val);
+                mem_val
+            }
+        };
+        let a = self.get_value(RegisterType::A).as_u8();
+        println!("[DEBUG] CMP A register: 0x{:02X}", a);
+        let result = a.wrapping_sub(value);
+        println!("[DEBUG] CMP result: 0x{:02X}", result);
+        println!(
+            "[DEBUG] CMP flags before: N={}, Z={}, C={}",
+            self.get_flag(StatusRegister::NEGATIVE),
+            self.get_flag(StatusRegister::ZERO),
+            self.get_flag(StatusRegister::CARRY)
+        );
+        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+        self.set_flag(StatusRegister::ZERO, result == 0);
+        self.set_flag(StatusRegister::CARRY, a >= value);
+        println!(
+            "[DEBUG] CMP flags after: N={}, Z={}, C={}",
+            self.get_flag(StatusRegister::NEGATIVE),
+            self.get_flag(StatusRegister::ZERO),
+            self.get_flag(StatusRegister::CARRY)
+        );
+        Ok(())
+    }
+
+    fn cpx(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
+        println!(
+            "[CPU] Executing CPX with operand: 0x{:02X}",
+            decode.operand_value
+        );
+        let value = match _mode {
+            AddressModeValue::Immediate(val) => val,
+            _ => self.read_memory(decode.operand_value)?,
+        };
+        let x = self.get_value(RegisterType::X).as_u8();
+        let result = x.wrapping_sub(value);
+        println!("[DEBUG] CPX result: 0x{:02X}", result);
+        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+        self.set_flag(StatusRegister::ZERO, result == 0);
+        self.set_flag(StatusRegister::CARRY, x >= value);
+        Ok(())
+    }
+
+    fn cpy(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
+        println!(
+            "[CPU] Executing CPY with operand: 0x{:02X}",
+            decode.operand_value
+        );
+        let value = match _mode {
+            AddressModeValue::Immediate(val) => val,
+            _ => self.read_memory(decode.operand_value)?,
+        };
+        let y = self.get_value(RegisterType::Y).as_u8();
+        let result = y.wrapping_sub(value);
+        println!("[DEBUG] CPY result: 0x{:02X}", result);
+        println!("[DEBUG] CPY y: 0x{:02X}", y);
+        println!("[DEBUG] CPY value: 0x{:02X}", value);
+        // self.update_nz_flags(result);
+        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+        self.set_flag(StatusRegister::ZERO, result == 0);
+        self.set_flag(StatusRegister::CARRY, y >= value);
+        Ok(())
+    }
+}
 
 impl CPU {
     pub(super) fn execute_compare(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
             "[CPU] Executing compare instruction: {:?}",
-            decoded.info.instruction
+            decoded.instruction
         );
-        match decoded.info.instruction {
+        match decoded.instruction {
             Instruction::CMP(mode) => self.cmp(mode, decoded),
             Instruction::CPX(mode) => self.cpx(mode, decoded),
             Instruction::CPY(mode) => self.cpy(mode, decoded),
@@ -17,44 +112,5 @@ impl CPU {
                 inst_type: "compare",
             }),
         }
-    }
-
-    fn cmp(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing CMP with operand: 0x{:02X}", decode.operand);
-        let value = decode.operand as u8;
-        let a = self.get_value(RegisterType::A).as_u8();
-        self.compare_values(a, value);
-        Ok(())
-    }
-
-    fn cpx(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing CPX with operand: 0x{:02X}", decode.operand);
-        let value = decode.operand as u8;
-        let x = self.get_value(RegisterType::X).as_u8();
-        self.compare_values(x, value);
-        Ok(())
-    }
-
-    fn cpy(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing CPY with operand: 0x{:02X}", decode.operand);
-        let value = decode.operand as u8;
-        let y = self.get_value(RegisterType::Y).as_u8();
-        self.compare_values(y, value);
-        Ok(())
-    }
-
-    /// Helper function to perform comparison and set flags
-    /// 개선된 버전: StatusRegister 기능 활용
-    fn compare_values(&mut self, reg_value: u8, mem_value: u8) {
-        let result = reg_value.wrapping_sub(mem_value);
-        // 비교 결과에 따라 각 플래그를 독립적으로 설정
-        // Carry 플래그: reg_value >= mem_value 면 SET
-        self.set_flag(StatusRegister::CARRY, reg_value >= mem_value);
-
-        // Zero 플래그: reg_value == mem_value 면 SET
-        self.set_flag(StatusRegister::ZERO, reg_value == mem_value);
-
-        // Negative 플래그: 결과의 비트 7이 1이면 SET
-        self.set_flag(StatusRegister::NEGATIVE, (result & 0x80) != 0);
     }
 }

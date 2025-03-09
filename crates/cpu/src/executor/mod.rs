@@ -14,7 +14,7 @@ use types::Instruction;
 
 impl CPU {
     pub(super) fn execute(&mut self, decoded: DecodedInstruction) -> common::Result<()> {
-        match decoded.info.instruction {
+        match decoded.instruction {
             // Transfer instructions
             Instruction::LDA(_)
             | Instruction::LDX(_)

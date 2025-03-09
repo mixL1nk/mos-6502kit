@@ -7,10 +7,10 @@ impl CPU {
     pub(super) fn execute_flag(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
             "[CPU] Executing flag instruction: {:?}",
-            decoded.info.instruction
+            decoded.instruction
         );
 
-        match decoded.info.instruction {
+        match decoded.instruction {
             // 플래그 해제 명령어
             Instruction::CLC => self.clear_flag(StatusRegister::CARRY),
             Instruction::CLD => self.clear_flag(StatusRegister::DECIMAL),
