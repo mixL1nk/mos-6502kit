@@ -35,6 +35,7 @@ impl Lexer<'_> {
         let upper_id = identifier.to_uppercase();
 
         Ok(match upper_id.as_str() {
+            "A" => self.create_token(Token::Register('A')),
             "X" => self.create_token(Token::IndexRegister('X')),
             "Y" => self.create_token(Token::IndexRegister('Y')),
             ".MACRO" => {

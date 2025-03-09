@@ -20,80 +20,98 @@ pub trait CompareOperation {
 }
 
 impl CompareOperation for CPU {
-    fn cmp(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing CMP with operand: 0x{:02X}",
-            decode.operand_value
-        );
-        let value = match _mode {
-            AddressModeValue::Immediate(val) => {
-                println!("[DEBUG] CMP immediate value: 0x{:02X}", val);
-                val
+    fn cmp(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing CMP with mode: {:?}", mode);
+
+        let value = match mode {
+            AddressModeValue::Immediate(val) => val,
+            AddressModeValue::ZeroPage(addr) => self.read_memory(addr as u16)?,
+            AddressModeValue::ZeroPageX(addr) => {
+                let effective_addr =
+                    addr.wrapping_add(self.get_value(RegisterType::X).as_u8()) as u16;
+                self.read_memory(effective_addr)?
             }
-            _ => {
-                let mem_val = self.read_memory(decode.operand_value)?;
-                println!("[DEBUG] CMP memory value: 0x{:02X}", mem_val);
-                mem_val
+            AddressModeValue::Absolute(addr) => self.read_memory(addr)?,
+            AddressModeValue::AbsoluteX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8() as u16;
+                let effective_addr = addr.wrapping_add(x);
+                self.read_memory(effective_addr)?
             }
+            AddressModeValue::AbsoluteY(addr) => {
+                let y = self.get_value(RegisterType::Y).as_u8() as u16;
+                let effective_addr = addr.wrapping_add(y);
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::IndirectX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8();
+                let ptr = addr.wrapping_add(x) as u16;
+                let low = self.read_memory(ptr)? as u16;
+                let high = self.read_memory(ptr.wrapping_add(1))? as u16;
+                let effective_addr = (high << 8) | low;
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::IndirectY(addr) => {
+                let ptr = addr as u16;
+                let low = self.read_memory(ptr)? as u16;
+                let high = self.read_memory(ptr.wrapping_add(1))? as u16;
+                let base_addr = (high << 8) | low;
+                let y = self.get_value(RegisterType::Y).as_u8() as u16;
+                let effective_addr = base_addr.wrapping_add(y);
+                self.read_memory(effective_addr)?
+            }
+            _ => return Err(Error::InvalidAddressingMode("CMP")),
         };
+
         let a = self.get_value(RegisterType::A).as_u8();
-        println!("[DEBUG] CMP A register: 0x{:02X}", a);
         let result = a.wrapping_sub(value);
-        println!("[DEBUG] CMP result: 0x{:02X}", result);
-        println!(
-            "[DEBUG] CMP flags before: N={}, Z={}, C={}",
-            self.get_flag(StatusRegister::NEGATIVE),
-            self.get_flag(StatusRegister::ZERO),
-            self.get_flag(StatusRegister::CARRY)
-        );
-        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
-        self.set_flag(StatusRegister::ZERO, result == 0);
+
+        // Update flags
         self.set_flag(StatusRegister::CARRY, a >= value);
-        println!(
-            "[DEBUG] CMP flags after: N={}, Z={}, C={}",
-            self.get_flag(StatusRegister::NEGATIVE),
-            self.get_flag(StatusRegister::ZERO),
-            self.get_flag(StatusRegister::CARRY)
-        );
+        self.set_flag(StatusRegister::ZERO, a == value);
+        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+
         Ok(())
     }
 
-    fn cpx(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing CPX with operand: 0x{:02X}",
-            decode.operand_value
-        );
-        let value = match _mode {
+    fn cpx(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing CPX with mode: {:?}", mode);
+
+        let value = match mode {
             AddressModeValue::Immediate(val) => val,
-            _ => self.read_memory(decode.operand_value)?,
+            AddressModeValue::ZeroPage(addr) => self.read_memory(addr as u16)?,
+            AddressModeValue::Absolute(addr) => self.read_memory(addr)?,
+            _ => return Err(Error::InvalidAddressingMode("CPX")),
         };
+
         let x = self.get_value(RegisterType::X).as_u8();
         let result = x.wrapping_sub(value);
-        println!("[DEBUG] CPX result: 0x{:02X}", result);
-        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
-        self.set_flag(StatusRegister::ZERO, result == 0);
+
+        // Update flags
         self.set_flag(StatusRegister::CARRY, x >= value);
+        self.set_flag(StatusRegister::ZERO, x == value);
+        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+
         Ok(())
     }
 
-    fn cpy(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing CPY with operand: 0x{:02X}",
-            decode.operand_value
-        );
-        let value = match _mode {
+    fn cpy(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing CPY with mode: {:?}", mode);
+
+        let value = match mode {
             AddressModeValue::Immediate(val) => val,
-            _ => self.read_memory(decode.operand_value)?,
+            AddressModeValue::ZeroPage(addr) => self.read_memory(addr as u16)?,
+            AddressModeValue::Absolute(addr) => self.read_memory(addr)?,
+            _ => return Err(Error::InvalidAddressingMode("CPY")),
         };
+
         let y = self.get_value(RegisterType::Y).as_u8();
         let result = y.wrapping_sub(value);
-        println!("[DEBUG] CPY result: 0x{:02X}", result);
-        println!("[DEBUG] CPY y: 0x{:02X}", y);
-        println!("[DEBUG] CPY value: 0x{:02X}", value);
-        // self.update_nz_flags(result);
-        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
-        self.set_flag(StatusRegister::ZERO, result == 0);
+
+        // Update flags
         self.set_flag(StatusRegister::CARRY, y >= value);
+        self.set_flag(StatusRegister::ZERO, y == value);
+        self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+
         Ok(())
     }
 }

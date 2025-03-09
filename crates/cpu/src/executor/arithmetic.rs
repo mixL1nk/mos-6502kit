@@ -115,16 +115,25 @@ impl CPU {
         if self.get_flag(StatusRegister::DECIMAL) {
             let (result, carry_out) = self.bcd_add(a, value, carry == 1);
             self.set_value(RegisterType::A, RegisterData::Bit8(result));
-            self.update_bcd_flags(result, carry_out);
+            let overflow = (!(a ^ value) & (a ^ result) & 0x80) != 0;
+            self.update_flags_arithmetic(result, carry_out, overflow);
         } else {
-            let sum = a as u16 + value as u16 + carry;
-            let result = sum as u8;
-            self.set_value(RegisterType::A, RegisterData::Bit8(result));
-            self.update_bcd_flags(result, sum > 0xFF);
-            self.set_flag(
-                StatusRegister::OVERFLOW,
-                (!(a ^ value) & (a ^ result) & 0x80) != 0,
+            println!(
+                "[DEBUG] ADC - A: ${:02X}, M: ${:02X}, C: {}",
+                a, value, carry
             );
+            let sum = a.wrapping_add(value).wrapping_add(carry);
+            let carry_out = (a as u16 + value as u16 + carry as u16) > 0xFF;
+
+            // Calculate overflow
+            let overflow = (a & 0x80) == (value & 0x80) && (a & 0x80) != (sum & 0x80);
+
+            println!(
+                "[DEBUG] ADC - Result: ${:02X}, Carry: {}, Overflow: {}",
+                sum, carry_out, overflow
+            );
+            self.set_value(RegisterType::A, RegisterData::Bit8(sum));
+            self.update_flags_arithmetic(sum, carry_out, overflow);
         }
 
         Ok(())

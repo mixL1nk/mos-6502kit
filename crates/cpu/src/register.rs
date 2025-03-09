@@ -65,7 +65,9 @@ impl RegisterValue for GeneralRegister {
 
     fn set(&mut self, value: u8) {
         match self {
-            Self::A(v) | Self::X(v) | Self::Y(v) => *v = value,
+            Self::A(v) => *v = value,
+            Self::X(v) => *v = value,
+            Self::Y(v) => *v = value,
         }
     }
 }

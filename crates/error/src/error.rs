@@ -39,14 +39,18 @@ pub enum Error {
         column: usize,
     },
     InvalidAddressingMode(&'static str),
+    AssemblerInvalidInstruction(String),
+    AssemblerInvalidAddressingMode(&'static str),
+    AssemblerInvalidDirective(&'static str),
+    AssemblerUndefinedLabel(String),
+    AssemblerUnexpectedEndOfInput,
+    AssemblerBranchOutOfRange(String),
+    AssemblerInvalidDirectiveOperand(&'static str),
+
     #[from]
     Io(io::Error),
     // -- External errors
     // not yet implemented
-    UndefinedLabel(String),
-    BranchOutOfRange(String),
-    InvalidDirectiveOperand(&'static str),
-    UnexpectedEndOfInput,
 }
 
 impl core::fmt::Display for Error {

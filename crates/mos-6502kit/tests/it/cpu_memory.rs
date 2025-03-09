@@ -1,6 +1,7 @@
 use assembler::Assembler;
 use breadboard::BreadBoard;
 use cpu::{RegisterType, register::StatusRegister};
+
 #[test]
 fn test_cpu_memory() {
     let board = BreadBoard::new();
@@ -100,10 +101,10 @@ fn test_bus_communication() {
 fn test_inx_instruction() {
     // X 레지스터 증가 명령어 테스트
     let mut board = BreadBoard::new();
-    let assembler = Assembler::default();
+    let assembler: Assembler = Assembler::default();
     let source = "INX";
     let machine_code = assembler.assemble(source).unwrap();
-
+    println!("[TEST] Assembled machine code:");
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
         println!("[TEST] Writing to address 0x{:04x}: 0x{:02x}", addr, code);
@@ -204,7 +205,7 @@ fn test_arithmetic_operations() {
         ADC #$25   ; A += 37
     ";
     let machine_code = assembler.assemble(source).unwrap();
-
+    println!("[TEST] Assembled machine code: {:?}", machine_code);
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
         board.cpu.write_memory(addr as u16, code).unwrap();
@@ -303,6 +304,7 @@ fn test_branch_instructions() {
     let mut board = BreadBoard::new();
     let assembler = Assembler::default();
     let source = "
+        .org $0600
         LDX #$00   ; X = 0
         LDY #$00   ; Y = 0
     loop:
@@ -312,13 +314,15 @@ fn test_branch_instructions() {
         BNE loop   ; Z=0이면 loop로 분기 (Y != 5)
         LDA #$42   ; A = 0x42 (루프 종료 후 실행)
     ";
+    // 0600: a2 00 a0 00 e8 c8 c0 05 d0 fa a9 42
     let machine_code = assembler.assemble(source).unwrap();
+    println!("[TEST] Assembled machine code: {:?}", machine_code);
 
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
-        board.cpu.write_memory(addr as u16, code).unwrap();
+        board.cpu.write_memory(0x0600 + addr as u16, code).unwrap();
     }
-
+    board.cpu.set_pc(0x0600);
     board.cpu.run().expect("CPU run failed");
 
     // 루프가 5번 반복되어야 함
@@ -341,7 +345,7 @@ fn test_indexed_addressing() {
         LDA $80,X      ; A = mem[0x82]
     ";
     let machine_code = assembler.assemble(source).unwrap();
-
+    println!("[TEST] Assembled machine code: {:?}", machine_code);
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
         board.cpu.write_memory(addr as u16, code).unwrap();
@@ -383,6 +387,7 @@ fn test_complex_program() {
     // 복합적인 프로그램 테스트: 1부터 10까지의 합계 계산
     let mut board = BreadBoard::new();
     let assembler = Assembler::default();
+
     let source = "
         .org $0600     ; 프로그램 시작 주소를 0x0600으로 설정
 start:  
@@ -400,12 +405,16 @@ done:
         BRK           ; 프로그램 종료
     ";
     let machine_code = assembler.assemble(source).unwrap();
+    println!(
+        "[TEST] Assembled machine code (hex): {}",
+        assembler.format_hex(&machine_code)
+    );
 
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
-        board.cpu.write_memory(addr as u16, code).unwrap();
+        board.cpu.write_memory(0x0600 + addr as u16, code).unwrap();
     }
-
+    board.cpu.set_pc(0x0600);
     board.cpu.run().expect("CPU run failed");
 
     // 1+2+...+10 = 55 (0x37)
@@ -427,8 +436,12 @@ fn test_indirect_addressing() {
         LDY #$00       ; Y = 0
         LDA ($20),Y    ; 간접주소 + Y 모드: A = mem[mem[0x20]+Y] = mem[0x0080] = 0x42
     ";
+    //A0 00 B1 20
     let machine_code = assembler.assemble(source).unwrap();
-
+    println!(
+        "[TEST] Assembled machine code (hex): {}",
+        assembler.format_hex(&machine_code)
+    );
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
         board.cpu.write_memory(addr as u16, code).unwrap();
@@ -451,6 +464,10 @@ fn test_bit_shift_operations() {
         ASL A      ; A = 10000000 (0x80), 왼쪽으로 1비트 시프트, C = 0 (맨 왼쪽 비트가 캐리로)
     ";
     let machine_code = assembler.assemble(source).unwrap();
+    println!(
+        "[TEST] Assembled machine code (hex): {}",
+        assembler.format_hex(&machine_code)
+    );
 
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {
@@ -459,6 +476,7 @@ fn test_bit_shift_operations() {
 
     // LSR 실행 후 상태 확인
     board.cpu.step().expect("LDA 실행 실패");
+    assert_eq!(board.cpu.get_value(RegisterType::A).as_u8(), 0x81);
     board.cpu.step().expect("LSR 실행 실패");
 
     // LSR 실행 후 A = 0x40, Carry = 1 (원래 값 0x81의 맨 오른쪽 비트)
@@ -504,7 +522,13 @@ fn test_compare_operations() {
         LDY #$10   ; Y = 0x10
         CPY #$20   ; Y < 0x20 ?
     ";
+    //0000:A9 40 C9 40 A2 30 E0 20
+    //0008: A0 10 C0 20
     let machine_code = assembler.assemble(source).unwrap();
+    println!(
+        "[TEST] Assembled machine code (hex): {}",
+        assembler.format_hex(&machine_code)
+    );
 
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {

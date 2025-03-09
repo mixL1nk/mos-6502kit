@@ -1,5 +1,5 @@
 //! 6502 프로세서의 옵코드 테이블 정의
-//! 
+//!
 //! 테이블 포맷:
 //! (opcode, instruction, base_cycles, page_cross, branch_taken)
 

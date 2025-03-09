@@ -30,15 +30,17 @@ impl Assembler {
 
         // 2. 구문 분석 (Parsing)
         let mut parser = Parser::new(tokens);
+        parser.set_org(self.org); // 초기 .ORG 값 설정
         let instructions = parser.parse()?;
 
-        // println!("[DEBUG] Instructions: {:?}", instructions);
+        println!("[DEBUG] Instructions: {:?}", instructions);
+        println!("[DEBUG] Final ORG: ${:04X}", parser.get_org());
 
         // 3. 코드 생성 (Code Generation)
-        let mut generator = Generator::new(self.org);
+        let mut generator = Generator::new(parser.get_org()); // 파서에서 최종 .ORG 값 가져오기
         let machine_code = generator.generate(instructions)?;
 
-        // println!("[DEBUG] Machine code: {:?}", machine_code);
+        println!("[DEBUG] Machine code: {:?}", machine_code);
 
         Ok(machine_code)
     }
@@ -67,6 +69,14 @@ impl Assembler {
 
     pub fn get_org(&self) -> u16 {
         self.org
+    }
+
+    pub fn format_hex(&self, machine_code: &[u8]) -> String {
+        machine_code
+            .iter()
+            .map(|b| format!("{:02X}", b))
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 }
 

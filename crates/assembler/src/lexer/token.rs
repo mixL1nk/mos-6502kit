@@ -10,6 +10,11 @@ pub enum Token {
     // 1. 기본 구성요소
     Mnemonic(String), // LDA, STA, BEQ 등 명령어
     Label(String),    // LOOP:, START: 등의 레이블
+    Register(char),   // 레지스터 이름 (A, X, Y)
+    Number(u16),      // 일반 10진수
+    Immediate(u8),    // 즉시 주소 지정 값
+    IndirectStart,    // 간접 주소 지정 시작
+    IndirectEnd,      // 간접 주소 지정 끝
 
     // 2. 주소 지정 모드 관련
     Hash,                // # (즉시 주소 지정)
@@ -28,7 +33,6 @@ pub enum Token {
     Expression(String), // 괄호 안의 수식
 
     // 4. 값 표현
-    Number(u16),      // 일반 10진수
     HexNumber(u16),   // $ 접두사로 시작하는 16진수
     BinaryNumber(u8), // % 접두사로 시작하는 2진수
 

@@ -99,11 +99,26 @@ impl ShiftOperation for CPU {
         match mode {
             AddressModeValue::Accumulator => {
                 let value = self.get_value(RegisterType::A).as_u8();
-                let result = value >> 1;
-                self.set_value(RegisterType::A, RegisterData::Bit8(result));
+                println!("[DEBUG] LSR - Before: A = 0x{:02X}", value);
+
+                // Set carry flag first
                 self.set_flag(StatusRegister::CARRY, value & 0x01 != 0);
+
+                // Perform shift
+                let result = value >> 1;
+                println!("[DEBUG] LSR - Result: 0x{:02X}", result);
+
+                // Update A register first
+                self.set_value(RegisterType::A, RegisterData::Bit8(result));
+
+                // Set other flags
                 self.set_flag(StatusRegister::ZERO, result == 0);
-                self.set_flag(StatusRegister::NEGATIVE, false);
+                self.set_flag(StatusRegister::NEGATIVE, false); // LSR always clears bit 7
+
+                println!(
+                    "[DEBUG] LSR - After set_value: A = 0x{:02X}",
+                    self.get_value(RegisterType::A).as_u8()
+                );
             }
             AddressModeValue::ZeroPage(addr) => {
                 let value = self.read_memory(addr as u16)?;

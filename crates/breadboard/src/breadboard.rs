@@ -44,6 +44,7 @@ impl MemoryBus for SharedMemoryBus {
         if let Err(e) = memory.set(address, value) {
             println!("[MemoryBus] Write error at 0x{:04x}: {}", address, e);
         } else {
+            // TODO: DEBUG 일때만 출력하게 수정 필요
             println!(
                 "[MemoryBus] Write: addr=0x{:04x}, data=0x{:02x}",
                 address, value
