@@ -63,7 +63,7 @@ impl CPU {
     }
 
     fn adc(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing ADC with mode: {:?}", mode);
+        // println!("[CPU] Executing ADC with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -118,20 +118,20 @@ impl CPU {
             let overflow = (!(a ^ value) & (a ^ result) & 0x80) != 0;
             self.update_flags_arithmetic(result, carry_out, overflow);
         } else {
-            println!(
-                "[DEBUG] ADC - A: ${:02X}, M: ${:02X}, C: {}",
-                a, value, carry
-            );
+            // println!(
+            //     "[DEBUG] ADC - A: ${:02X}, M: ${:02X}, C: {}",
+            //     a, value, carry
+            // );
             let sum = a.wrapping_add(value).wrapping_add(carry);
             let carry_out = (a as u16 + value as u16 + carry as u16) > 0xFF;
 
             // Calculate overflow
             let overflow = (a & 0x80) == (value & 0x80) && (a & 0x80) != (sum & 0x80);
 
-            println!(
-                "[DEBUG] ADC - Result: ${:02X}, Carry: {}, Overflow: {}",
-                sum, carry_out, overflow
-            );
+            // println!(
+            //     "[DEBUG] ADC - Result: ${:02X}, Carry: {}, Overflow: {}",
+            //     sum, carry_out, overflow
+            // );
             self.set_value(RegisterType::A, RegisterData::Bit8(sum));
             self.update_flags_arithmetic(sum, carry_out, overflow);
         }
@@ -140,7 +140,7 @@ impl CPU {
     }
 
     fn sbc(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing SBC with mode: {:?}", mode);
+        // println!("[CPU] Executing SBC with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -212,7 +212,7 @@ impl CPU {
     }
 
     fn inc(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing INC with mode: {:?}", mode);
+        // println!("[CPU] Executing INC with mode: {:?}", mode);
 
         let addr = match mode {
             AddressModeValue::ZeroPage(addr) => addr as u16,
@@ -239,7 +239,7 @@ impl CPU {
     }
 
     fn dec(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing DEC with mode: {:?}", mode);
+        // println!("[CPU] Executing DEC with mode: {:?}", mode);
 
         let addr = match mode {
             AddressModeValue::ZeroPage(addr) => addr as u16,
@@ -266,7 +266,7 @@ impl CPU {
     }
 
     fn inx(&mut self) -> Result<()> {
-        println!("[CPU] Executing INX");
+        // println!("[CPU] Executing INX");
         let value = self.get_value(RegisterType::X).as_u8().wrapping_add(1);
         self.set_value(RegisterType::X, RegisterData::Bit8(value));
 
@@ -278,7 +278,7 @@ impl CPU {
     }
 
     fn iny(&mut self) -> Result<()> {
-        println!("[CPU] Executing INY");
+        // println!("[CPU] Executing INY");
         let value = self.get_value(RegisterType::Y).as_u8().wrapping_add(1);
         self.set_value(RegisterType::Y, RegisterData::Bit8(value));
 
@@ -290,7 +290,7 @@ impl CPU {
     }
 
     fn dex(&mut self) -> Result<()> {
-        println!("[CPU] Executing DEX");
+        // println!("[CPU] Executing DEX");
         let value = self.get_value(RegisterType::X).as_u8().wrapping_sub(1);
         self.set_value(RegisterType::X, RegisterData::Bit8(value));
 

@@ -47,6 +47,11 @@ pub enum Error {
     AssemblerBranchOutOfRange(String),
     AssemblerInvalidDirectiveOperand(&'static str),
 
+    // -- Debugger errors
+    DebuggerNotAttached,
+    DebuggerNoCPU,
+
+
     #[from]
     Io(io::Error),
     // -- External errors

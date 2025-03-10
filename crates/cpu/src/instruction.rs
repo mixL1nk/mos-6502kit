@@ -3,7 +3,7 @@ use types::OPCODE_MAP;
 pub use types::{AddressModeValue, Instruction, InstructionInfo};
 
 /// 명령어 디코딩 결과를 담는 구조체
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DecodedInstruction {
     pub instruction: Instruction,
     pub bytes_count: u8,
@@ -22,23 +22,35 @@ impl DecodedInstruction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Fetch {
     pub instruction_info: InstructionInfo,
     pub operand: Vec<u8>,
+    pub opcode: u8,
 }
 
 impl Fetch {
-    pub fn new(instruction_info: InstructionInfo, operand: Vec<u8>) -> Self {
+    pub fn new(instruction_info: InstructionInfo, operand: Vec<u8>, opcode: u8) -> Self {
         Self {
             instruction_info,
             operand,
+            opcode,
         }
     }
+
+    pub fn to_operand_u16(&self) -> u16 {
+        match self.operand.len() {
+            0 => 0,
+            1 => self.operand[0] as u16,
+            2 => (self.operand[0] as u16) | ((self.operand[1] as u16) << 8),
+            _ => panic!("잘못된 오퍼랜드 크기: {}", self.operand.len()),
+        }
+    }
+
 }
 
 /// 명령어 디코더
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InstructionDecoder;
 
 impl Default for InstructionDecoder {
@@ -59,8 +71,9 @@ impl InstructionDecoder {
     pub fn decode(&self, fetch: Fetch) -> Result<DecodedInstruction> {
         let info = fetch.instruction_info;
         let operand = fetch.operand;
-        println!("[DEBUG] opcode: {:?}", info.instruction);
-        println!("[DEBUG] operand: {:?}", operand);
+        // TODO: 출력을 Debug 모드에서만 하도록 수정
+        // println!("[DEBUG] opcode: {:?}", info.instruction);
+        // println!("[DEBUG] operand: {:?}", operand);
         // 어드레싱 모드 추출 및 수정
         let address_mode: AddressModeValue = match info.instruction {
             Instruction::LDA(mode)

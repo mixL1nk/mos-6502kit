@@ -19,20 +19,20 @@ impl CPU {
     }
 
     fn pha(&mut self) -> Result<()> {
-        println!("[CPU] Executing PHA");
+        // println!("[CPU] Executing PHA");
         let a = self.get_value(RegisterType::A).as_u8();
         self.stack_push(a)
     }
 
     fn php(&mut self) -> Result<()> {
-        println!("[CPU] Executing PHP");
+        // println!("[CPU] Executing PHP");
         let p = self.get_value(RegisterType::P).as_u8();
         // Break and Unused flags are set when pushed
         self.stack_push(p | 0x30)
     }
 
     fn pla(&mut self) -> Result<()> {
-        println!("[CPU] Executing PLA");
+        // println!("[CPU] Executing PLA");
         let value = self.stack_pull()?;
         self.set_value(RegisterType::A, RegisterData::Bit8(value));
         self.update_nz_flags(value);
@@ -40,7 +40,7 @@ impl CPU {
     }
 
     fn plp(&mut self) -> Result<()> {
-        println!("[CPU] Executing PLP");
+        // println!("[CPU] Executing PLP");
         let value = self.stack_pull()?;
         // Break and Unused flags are ignored when pulled
         let current_p = self.get_value(RegisterType::P).as_u8();

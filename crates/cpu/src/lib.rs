@@ -7,8 +7,10 @@ pub mod executor;
 pub mod flags;
 pub mod instruction;
 pub mod register;
+pub mod cpu_event;
 
 pub use common::Result;
 // 주요 타입 재내보내기
-pub use cpu::CPU;
+pub use cpu::{CPU, InterruptType};
+pub use cpu_event::{CPUContext, CPUEvent, EventHandler};
 pub use register::{RegisterData, RegisterType};

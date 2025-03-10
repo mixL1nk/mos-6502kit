@@ -8,6 +8,7 @@ doctest = false
 
 [dependencies]
 bitflags = "2.9.0"
+derive_more = { workspace = true }
 common = { path = "../common" }
 memory = { path = "../memory" }
 error = { path = "../error" }

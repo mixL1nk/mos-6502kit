@@ -45,7 +45,7 @@ impl CPU {
         decode: DecodedInstruction,
     ) -> Result<()> {
         let branch_taken = self.get_flag(flag) == expected_state;
-        println!("[DEBUG] Branch taken: {}", branch_taken);
+        // println!("[DEBUG] Branch taken: {}", branch_taken);
 
         if branch_taken {
             // 오퍼랜드를 signed byte로 처리
@@ -66,13 +66,13 @@ impl CPU {
                 self.add_cycles(1);
             }
 
-            println!(
-                "[DEBUG] Branch from {:04X} to {:04X} (offset: {:+})",
-                pc, new_pc, offset
-            );
-            if page_crossed {
-                println!("[DEBUG] Page boundary crossed, added extra cycle");
-            }
+            // println!(
+            //     "[DEBUG] Branch from {:04X} to {:04X} (offset: {:+})",
+            //     pc, new_pc, offset
+            // );
+            // if page_crossed {
+            //     println!("[DEBUG] Page boundary crossed, added extra cycle");
+            // }
 
             self.set_pc(new_pc);
         }
@@ -82,19 +82,19 @@ impl CPU {
 
     // 기존 jmp, jsr, rts 함수는 그대로 유지
     fn jmp(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing JMP to address: 0x{:04X}",
-            decode.operand_value
-        );
+        // println!(
+        //     "[CPU] Executing JMP to address: 0x{:04X}",
+        //     decode.operand_value
+        // );
         self.set_pc(decode.operand_value);
         Ok(())
     }
 
     fn jsr(&mut self, _mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing JSR to address: 0x{:04X}",
-            decode.operand_value
-        );
+        // println!(
+        //     "[CPU] Executing JSR to address: 0x{:04X}",
+        //     decode.operand_value
+        // );
         let return_addr = self.get_pc().wrapping_sub(1);
         self.stack_push_u16(return_addr)?;
         self.set_pc(decode.operand_value);
@@ -102,7 +102,7 @@ impl CPU {
     }
 
     fn rts(&mut self) -> Result<()> {
-        println!("[CPU] Executing RTS");
+        // println!("[CPU] Executing RTS");
         let return_addr = self.stack_pull_u16()?.wrapping_add(1);
         self.set_pc(return_addr);
         Ok(())

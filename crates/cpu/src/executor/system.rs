@@ -19,7 +19,7 @@ impl CPU {
     }
 
     fn brk(&mut self) -> Result<()> {
-        println!("[CPU] Executing BRK");
+        // print!("[CPU] Executing BRK");
         let pc = self.get_pc();
         let mut p = self.get_value(RegisterType::P).as_u8();
 
@@ -41,7 +41,7 @@ impl CPU {
     }
 
     fn rti(&mut self) -> Result<()> {
-        println!("[CPU] Executing RTI");
+        // println!("[CPU] Executing RTI");
 
         // Pull status register from stack (ignore Break and Unused flags)
         let status = self.stack_pull()?;
@@ -55,7 +55,7 @@ impl CPU {
     }
 
     fn nop(&mut self) -> Result<()> {
-        println!("[CPU] Executing NOP");
+        // println!("[CPU] Executing NOP");
         Ok(())
     }
 }
