@@ -65,7 +65,9 @@ impl RegisterValue for GeneralRegister {
 
     fn set(&mut self, value: u8) {
         match self {
-            Self::A(v) | Self::X(v) | Self::Y(v) => *v = value,
+            Self::A(v) => *v = value,
+            Self::X(v) => *v = value,
+            Self::Y(v) => *v = value,
         }
     }
 }
@@ -206,7 +208,8 @@ impl Default for Registers {
 }
 
 impl Registers {
-    pub fn get(&self, reg: RegisterType) -> RegisterData {
+    /// 레지스터 값 읽기
+    pub fn get_value(&self, reg: RegisterType) -> RegisterData {
         match reg {
             RegisterType::A => RegisterData::Bit8(self.a.get()),
             RegisterType::X => RegisterData::Bit8(self.x.get()),
@@ -216,8 +219,8 @@ impl Registers {
             RegisterType::PC => RegisterData::Bit16(self.pc.get()),
         }
     }
-
-    pub fn set(&mut self, reg: RegisterType, value: RegisterData) {
+    /// 레지스터 값 설정
+    pub fn set_value(&mut self, reg: RegisterType, value: RegisterData) {
         match reg {
             RegisterType::A => self.a.set(value.as_u8()),
             RegisterType::X => self.x.set(value.as_u8()),
@@ -245,85 +248,6 @@ impl RegisterData {
             Self::Bit16(value) => *value,
         }
     }
-}
-
-/// 어드레싱 모드
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AddressingMode {
-    Implied,
-    Accumulator,
-    Immediate,
-    ZeroPage,
-    ZeroPageX,
-    ZeroPageY,
-    Relative,
-    Absolute,
-    AbsoluteX,
-    AbsoluteY,
-    Indirect,
-    IndexedIndirect,
-    IndirectIndexed,
-}
-
-/// 명령어 타입
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InstructionType {
-    ADC,
-    AND,
-    ASL,
-    BCC,
-    BCS,
-    BEQ,
-    BIT,
-    BMI,
-    BNE,
-    BPL,
-    BRK,
-    BVC,
-    BVS,
-    CLC,
-    CLD,
-    CLI,
-    CLV,
-    CMP,
-    CPX,
-    CPY,
-    DEC,
-    DEX,
-    DEY,
-    EOR,
-    INC,
-    INX,
-    INY,
-    JMP,
-    JSR,
-    LDA,
-    LDX,
-    LDY,
-    LSR,
-    NOP,
-    ORA,
-    PHA,
-    PHP,
-    PLA,
-    PLP,
-    ROL,
-    ROR,
-    RTI,
-    RTS,
-    SBC,
-    SEC,
-    SED,
-    SEI,
-    STA,
-    STX,
-    STY,
-    TAX,
-    TAY,
-    TSX,
-    TXA,
-    TXS,
-    TYA,
 }
 
 #[cfg(test)]

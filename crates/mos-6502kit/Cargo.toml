@@ -3,6 +3,9 @@ name = "mos-6502kit"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+doctest = false
+
 [dependencies]
 cpu = { path = "../cpu" }
 memory = { path = "../memory" }

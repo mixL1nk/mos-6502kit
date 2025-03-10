@@ -3,4 +3,11 @@ name = "assembler"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+doctest = false
+
 [dependencies]
+common = { path = "../common" }
+error = { path = "../error" }
+cpu = { path = "../cpu" }
+types = { path = "../types" }

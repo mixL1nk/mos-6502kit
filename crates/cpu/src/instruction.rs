@@ -1,72 +1,45 @@
-use crate::{cpu::Fetch, opcode_table::initialize_opcode_table};
 use common::Result;
-use error::CPUError;
-
-#[derive(Debug, Clone, Copy)]
-pub struct InstructionInfo {
-    pub instruction: Instruction,
-    pub cycles: CycleInfo,
-}
-
-impl AddressMode {
-    pub fn operand_size(&self) -> OperandSize {
-        match self {
-            AddressMode::Implied => OperandSize::Zero,
-            AddressMode::Immediate => OperandSize::One,
-            AddressMode::ZeroPage => OperandSize::One,
-            AddressMode::ZeroPageX => OperandSize::One,
-            AddressMode::ZeroPageY => OperandSize::One,
-            AddressMode::Absolute => OperandSize::Two,
-            AddressMode::AbsoluteX => OperandSize::Two,
-            AddressMode::AbsoluteY => OperandSize::Two,
-            AddressMode::Indirect => OperandSize::Two,
-            AddressMode::IndirectX => OperandSize::One,
-            AddressMode::IndirectY => OperandSize::One,
-            _ => OperandSize::Zero, // 기본적으로 Operand가 없는 경우
-        }
-    }
-}
-
-impl InstructionInfo {
-    pub fn new(instruction: Instruction, cycles: CycleInfo) -> Self {
-        Self {
-            instruction,
-            cycles,
-        }
-    }
-
-    pub fn get_operand_size(&self) -> OperandSize {
-        match &self.instruction {
-            Instruction::LDA(mode) => mode.operand_size(),
-            Instruction::LDX(mode) => mode.operand_size(),
-            Instruction::LDY(mode) => mode.operand_size(),
-            Instruction::STA(mode) => mode.operand_size(),
-            Instruction::INC(mode) => mode.operand_size(),
-            Instruction::DEC(mode) => mode.operand_size(),
-            Instruction::JMP(mode) => mode.operand_size(),
-            Instruction::JSR(mode) => mode.operand_size(),
-            _ => OperandSize::Zero, // 기본적으로 Operand가 없는 경우
-        }
-    }
-}
+use types::OPCODE_MAP;
+pub use types::{AddressModeValue, Instruction, InstructionInfo};
 
 /// 명령어 디코딩 결과를 담는 구조체
 #[derive(Debug)]
 pub struct DecodedInstruction {
-    /// 디코딩된 명령어 정보
-    pub info: InstructionInfo,
-    /// 명령어의 바이트 수 (opcode + operand)
-    pub bytes: u8,
-    /// 명령어의 operand 값
-    pub operand: u16,
+    pub instruction: Instruction,
+    pub bytes_count: u8,
+    pub operand_value: u16,
+    pub cycles: u8,
+}
+
+impl DecodedInstruction {
+    pub fn new(instruction: Instruction, bytes_count: u8, operand_value: u16, cycles: u8) -> Self {
+        Self {
+            instruction,
+            bytes_count,
+            operand_value,
+            cycles,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Fetch {
+    pub instruction_info: InstructionInfo,
+    pub operand: Vec<u8>,
+}
+
+impl Fetch {
+    pub fn new(instruction_info: InstructionInfo, operand: Vec<u8>) -> Self {
+        Self {
+            instruction_info,
+            operand,
+        }
+    }
 }
 
 /// 명령어 디코더
 #[derive(Debug)]
-pub struct InstructionDecoder {
-    /// opcode 테이블
-    opcode_table: [Option<InstructionInfo>; 256],
-}
+pub struct InstructionDecoder;
 
 impl Default for InstructionDecoder {
     fn default() -> Self {
@@ -75,25 +48,21 @@ impl Default for InstructionDecoder {
 }
 
 impl InstructionDecoder {
-    /// 새로운 디코더 인스턴스 생성
     pub fn new() -> Self {
-        Self {
-            opcode_table: initialize_opcode_table(),
-        }
+        Self
     }
 
     pub fn get_instruction_info(&self, opcode: u8) -> Option<InstructionInfo> {
-        self.opcode_table[opcode as usize]
+        OPCODE_MAP.get(&opcode).copied()
     }
 
-    /// 명령어 디코딩
     pub fn decode(&self, fetch: Fetch) -> Result<DecodedInstruction> {
-        let Fetch {
-            instruction_info,
-            operand,
-        } = fetch;
-        let inst = instruction_info.instruction;
-        let (bytes_count, operand_value) = match inst {
+        let info = fetch.instruction_info;
+        let operand = fetch.operand;
+        println!("[DEBUG] opcode: {:?}", info.instruction);
+        println!("[DEBUG] operand: {:?}", operand);
+        // 어드레싱 모드 추출 및 수정
+        let address_mode: AddressModeValue = match info.instruction {
             Instruction::LDA(mode)
             | Instruction::LDX(mode)
             | Instruction::LDY(mode)
@@ -113,248 +82,118 @@ impl InstructionDecoder {
             | Instruction::ASL(mode)
             | Instruction::LSR(mode)
             | Instruction::ROL(mode)
-            | Instruction::ROR(mode) => match mode {
-                AddressMode::Immediate => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
+            | Instruction::ROR(mode)
+            | Instruction::JMP(mode)
+            | Instruction::JSR(mode)
+            | Instruction::BIT(mode) => match mode {
+                AddressModeValue::Immediate(_) => AddressModeValue::Immediate(operand[0]),
+                AddressModeValue::Absolute(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::Absolute(addr)
                 }
-                AddressMode::ZeroPage => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
+                AddressModeValue::ZeroPage(_) => AddressModeValue::ZeroPage(operand[0]),
+                AddressModeValue::ZeroPageX(_) => AddressModeValue::ZeroPageX(operand[0]),
+                AddressModeValue::ZeroPageY(_) => AddressModeValue::ZeroPageY(operand[0]),
+                AddressModeValue::AbsoluteX(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::AbsoluteX(addr)
                 }
-                AddressMode::ZeroPageX => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
+                AddressModeValue::AbsoluteY(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::AbsoluteY(addr)
                 }
-                AddressMode::ZeroPageY => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
+                AddressModeValue::IndirectX(_) => AddressModeValue::IndirectX(operand[0]),
+                AddressModeValue::IndirectY(_) => AddressModeValue::IndirectY(operand[0]),
+                AddressModeValue::Indirect(_) => {
+                    let addr = ((operand[1] as u16) << 8) | (operand[0] as u16);
+                    AddressModeValue::Indirect(addr)
                 }
-                AddressMode::Absolute => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::AbsoluteX => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::AbsoluteY => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::Indirect => {
-                    if operand.len() < 2 {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (3, ((operand[1] as u16) << 8) | operand[0] as u16)
-                }
-                AddressMode::IndirectX => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::IndirectY => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::Relative => {
-                    if operand.is_empty() {
-                        return Err(CPUError::InvalidOperand(0).into());
-                    }
-                    (2, operand[0] as u16)
-                }
-                AddressMode::Accumulator => (1, 0),
-                AddressMode::Implied => (1, 0),
+                _ => mode,
             },
-            Instruction::PHA
-            | Instruction::PLA
-            | Instruction::PHP
-            | Instruction::PLP
-            | Instruction::TAX
-            | Instruction::TXA
-            | Instruction::TAY
-            | Instruction::TYA
-            | Instruction::TSX
-            | Instruction::TXS
-            | Instruction::INX
-            | Instruction::INY
-            | Instruction::DEX
-            | Instruction::DEY
-            | Instruction::CLC
-            | Instruction::SEC
-            | Instruction::CLI
-            | Instruction::SEI
-            | Instruction::CLD
-            | Instruction::SED
-            | Instruction::CLV
-            | Instruction::NOP
-            | Instruction::BRK
-            | Instruction::RTI
-            | Instruction::RTS => (1, 0),
-            _ => return Err(CPUError::Decode(format!("Invalid instruction: {:?}", inst)).into()),
+            _ => AddressModeValue::Implied,
         };
 
-        Ok(DecodedInstruction {
-            info: instruction_info,
-            bytes: bytes_count,
-            operand: operand_value,
-        })
-    }
-}
+        // 명령어 재구성
+        let instruction = match info.instruction {
+            Instruction::LDA(_) => Instruction::LDA(address_mode),
+            Instruction::LDX(_) => Instruction::LDX(address_mode),
+            Instruction::LDY(_) => Instruction::LDY(address_mode),
+            Instruction::STA(_) => Instruction::STA(address_mode),
+            Instruction::STX(_) => Instruction::STX(address_mode),
+            Instruction::STY(_) => Instruction::STY(address_mode),
+            Instruction::ADC(_) => Instruction::ADC(address_mode),
+            Instruction::SBC(_) => Instruction::SBC(address_mode),
+            Instruction::AND(_) => Instruction::AND(address_mode),
+            Instruction::ORA(_) => Instruction::ORA(address_mode),
+            Instruction::EOR(_) => Instruction::EOR(address_mode),
+            Instruction::CMP(_) => Instruction::CMP(address_mode),
+            Instruction::CPX(_) => Instruction::CPX(address_mode),
+            Instruction::CPY(_) => Instruction::CPY(address_mode),
+            Instruction::INC(_) => Instruction::INC(address_mode),
+            Instruction::DEC(_) => Instruction::DEC(address_mode),
+            Instruction::ASL(_) => Instruction::ASL(address_mode),
+            Instruction::LSR(_) => Instruction::LSR(address_mode),
+            Instruction::ROL(_) => Instruction::ROL(address_mode),
+            Instruction::ROR(_) => Instruction::ROR(address_mode),
+            Instruction::JMP(_) => Instruction::JMP(address_mode),
+            Instruction::JSR(_) => Instruction::JSR(address_mode),
+            Instruction::BIT(_) => Instruction::BIT(address_mode),
+            _ => info.instruction,
+        };
 
-#[derive(Debug, Clone, Copy)]
-pub struct CycleInfo {
-    pub base_cycles: u8,    // 기본 사이클 수
-    pub page_cross: bool,   // 페이지 크로스 여부
-    pub branch_taken: bool, // 분기 명령 실행 여부
-}
+        // 명령어 크기와 피연산자 값, 페이지 경계 계산
+        let (bytes_count, operand_value, page_crossed) = match address_mode {
+            AddressModeValue::Immediate(_) => (2, operand[0] as u16, false),
+            AddressModeValue::ZeroPage(_) => (2, operand[0] as u16, false),
+            AddressModeValue::ZeroPageX(_) | AddressModeValue::ZeroPageY(_) => {
+                (2, operand[0] as u16, false)
+            }
+            AddressModeValue::Absolute(_) => {
+                (3, ((operand[1] as u16) << 8) | operand[0] as u16, false)
+            }
+            AddressModeValue::AbsoluteX(_) | AddressModeValue::AbsoluteY(_) => {
+                let base = ((operand[1] as u16) << 8) | operand[0] as u16;
+                let crosses = (base & 0xFF00) != ((base + 1) & 0xFF00);
+                (3, base, crosses)
+            }
+            AddressModeValue::Indirect(_) => {
+                (3, ((operand[1] as u16) << 8) | operand[0] as u16, false)
+            }
+            AddressModeValue::IndirectX(_) => (2, operand[0] as u16, false),
+            AddressModeValue::IndirectY(_) => {
+                let base = operand[0] as u16;
+                let crosses = (base & 0xFF00) != ((base + 1) & 0xFF00);
+                (2, base, crosses)
+            }
+            AddressModeValue::Accumulator | AddressModeValue::Implied => (1, 0, false),
+        };
 
-impl CycleInfo {
-    pub fn new(base_cycles: u8) -> Self {
-        Self {
-            base_cycles,
-            page_cross: false,
-            branch_taken: false,
-        }
-    }
+        // 분기 명령어인 경우 operand_value를 signed byte로 처리
+        let operand_value = match info.instruction {
+            Instruction::BCC(_)
+            | Instruction::BCS(_)
+            | Instruction::BEQ(_)
+            | Instruction::BNE(_)
+            | Instruction::BMI(_)
+            | Instruction::BPL(_)
+            | Instruction::BVC(_)
+            | Instruction::BVS(_) => operand[0] as i8 as u16,
+            _ => operand_value,
+        };
 
-    pub fn with_page_cross(mut self) -> Self {
-        self.page_cross = true;
-        self
-    }
-
-    pub fn with_branch_taken(mut self) -> Self {
-        self.branch_taken = true;
-        self
-    }
-
-    pub fn total_cycles(&self) -> u8 {
-        let mut cycles = self.base_cycles;
-        if self.page_cross {
+        // 총 사이클 수 계산
+        let mut cycles = info.cycles.base_cycles;
+        if page_crossed {
             cycles += 1;
         }
-        if self.branch_taken {
+        if info.cycles.branch_taken {
             cycles += 1;
         }
-        cycles
+        Ok(DecodedInstruction::new(
+            instruction,
+            bytes_count,
+            operand_value,
+            cycles,
+        ))
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum OperandSize {
-    Zero, // Operand 없음
-    One,  // 1 바이트 Operand
-    Two,  // 2 바이트 Operand
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum AddressMode {
-    Immediate,   // #$00
-    ZeroPage,    // $00
-    ZeroPageX,   // $00,X
-    ZeroPageY,   // $00,Y
-    Absolute,    // $0000
-    AbsoluteX,   // $0000,X
-    AbsoluteY,   // $0000,Y
-    Indirect,    // ($0000)
-    IndirectX,   // ($00,X)
-    IndirectY,   // ($00),Y
-    Relative,    // $00 (for branches)
-    Accumulator, // A
-    Implied,     // (no operand)
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Instruction {
-    // 로드/스토어
-    LDA(AddressMode), // Load Accumulator
-    LDX(AddressMode), // Load X Register
-    LDY(AddressMode), // Load Y Register
-    STA(AddressMode), // Store Accumulator
-    STX(AddressMode), // Store X Register
-    STY(AddressMode), // Store Y Register
-
-    // 스택 연산
-    PHA, // Push Accumulator
-    PLA, // Pull Accumulator
-    PHP, // Push Processor Status
-    PLP, // Pull Processor Status
-
-    // 레지스터 연산
-    TAX, // Transfer Accumulator to X
-    TXA, // Transfer X to Accumulator
-    TAY, // Transfer Accumulator to Y
-    TYA, // Transfer Y to Accumulator
-    TSX, // Transfer Stack Pointer to X
-    TXS, // Transfer X to Stack Pointer
-
-    // 산술/논리 연산
-    ADC(AddressMode), // Add with Carry
-    SBC(AddressMode), // Subtract with Carry
-    AND(AddressMode), // Logical AND
-    ORA(AddressMode), // Logical OR
-    EOR(AddressMode), // Logical Exclusive OR
-    CMP(AddressMode), // Compare with Accumulator
-    CPX(AddressMode), // Compare with X
-    CPY(AddressMode), // Compare with Y
-
-    // 증감 연산
-    INC(AddressMode), // Increment Memory
-    INX,              // Increment X
-    INY,              // Increment Y
-    DEC(AddressMode), // Decrement Memory
-    DEX,              // Decrement X
-    DEY,              // Decrement Y
-
-    // 시프트 연산
-    ASL(AddressMode), // Arithmetic Shift Left
-    LSR(AddressMode), // Logical Shift Right
-    ROL(AddressMode), // Rotate Left
-    ROR(AddressMode), // Rotate Right
-
-    // 분기 명령
-    BCC(i8), // Branch if Carry Clear
-    BCS(i8), // Branch if Carry Set
-    BEQ(i8), // Branch if Equal
-    BNE(i8), // Branch if Not Equal
-    BMI(i8), // Branch if Minus
-    BPL(i8), // Branch if Plus
-    BVC(i8), // Branch if Overflow Clear
-    BVS(i8), // Branch if Overflow Set
-
-    // 점프/서브루틴
-    JMP(AddressMode), // Jump
-    JSR(AddressMode), // Jump to Subroutine
-    RTS,              // Return from Subroutine
-
-    // 인터럽트
-    BRK, // Break
-    RTI, // Return from Interrupt
-
-    // 기타
-    CLC, // Clear Carry Flag
-    SEC, // Set Carry Flag
-    CLI, // Clear Interrupt Disable
-    SEI, // Set Interrupt Disable
-    CLD, // Clear Decimal Mode
-    SED, // Set Decimal Mode
-    CLV, // Clear Overflow Flag
-    NOP, // No Operation
 }

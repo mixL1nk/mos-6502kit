@@ -1,16 +1,18 @@
 use crate::RegisterData;
 use crate::RegisterType;
-use crate::cpu::CPU;
-use crate::instruction::{AddressMode, DecodedInstruction, Instruction};
+use crate::register::StatusRegister;
+use crate::{CPU, instruction::DecodedInstruction};
 use common::Result;
+use error::Error;
+use types::{AddressModeValue, Instruction};
 
 impl CPU {
     pub(super) fn execute_arithmetic(&mut self, decoded: DecodedInstruction) -> Result<()> {
         println!(
             "[CPU] Executing arithmetic instruction: {:?}",
-            decoded.info.instruction
+            decoded.instruction
         );
-        match decoded.info.instruction {
+        match decoded.instruction {
             Instruction::ADC(mode) => self.adc(mode, decoded),
             Instruction::SBC(mode) => self.sbc(mode, decoded),
             Instruction::INC(mode) => self.inc(mode, decoded),
@@ -19,7 +21,9 @@ impl CPU {
             Instruction::INY => self.iny(),
             Instruction::DEX => self.dex(),
             Instruction::DEY => self.dey(),
-            _ => Err("Invalid arithmetic instruction".into()),
+            _ => Err(Error::InvalidInstruction {
+                inst_type: "arithmetic",
+            }),
         }
     }
 
@@ -58,133 +62,253 @@ impl CPU {
         (result, carry_out)
     }
 
-    fn adc(&mut self, mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing ADC with mode: {:?}, operand: 0x{:04X}",
-            mode, decode.operand
-        );
+    fn adc(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing ADC with mode: {:?}", mode);
 
-        let operand = decode.operand as u8;
-        let a = self.get(RegisterType::A).as_u8();
-        let status = self.get(RegisterType::P).as_u8();
-        let carry = (status & 0x01) != 0;
-        let decimal_mode = (status & 0x08) != 0;
+        let value = match mode {
+            AddressModeValue::Immediate(val) => val,
+            AddressModeValue::ZeroPage(addr) => self.read_memory(addr as u16)?,
+            AddressModeValue::ZeroPageX(addr) => {
+                let effective_addr =
+                    addr.wrapping_add(self.get_value(RegisterType::X).as_u8()) as u16;
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::Absolute(addr) => self.read_memory(addr)?,
+            AddressModeValue::AbsoluteX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8() as u16;
+                let effective_addr = addr.wrapping_add(x);
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::AbsoluteY(addr) => {
+                let y = self.get_value(RegisterType::Y).as_u8() as u16;
+                let effective_addr = addr.wrapping_add(y);
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::IndirectX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8();
+                let ptr = addr.wrapping_add(x) as u16;
+                let low = self.read_memory(ptr)? as u16;
+                let high = self.read_memory(ptr.wrapping_add(1))? as u16;
+                let effective_addr = (high << 8) | low;
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::IndirectY(addr) => {
+                let ptr = addr as u16;
+                let low = self.read_memory(ptr)? as u16;
+                let high = self.read_memory(ptr.wrapping_add(1))? as u16;
+                let base_addr = (high << 8) | low;
+                let y = self.get_value(RegisterType::Y).as_u8() as u16;
+                let effective_addr = base_addr.wrapping_add(y);
+                self.read_memory(effective_addr)?
+            }
+            _ => return Err(Error::InvalidAddressingMode("ADC")),
+        };
 
-        if decimal_mode {
-            let (result, carry_out) = self.bcd_add(a, operand, carry);
-            self.set(RegisterType::A, RegisterData::Bit8(result));
-            self.update_bcd_flags(result, carry_out);
+        let a = self.get_value(RegisterType::A).as_u8();
+        let carry = if self.get_flag(StatusRegister::CARRY) {
+            1
         } else {
-            let sum = a as u16 + operand as u16 + (carry as u16);
-            let result = sum as u8;
+            0
+        };
 
-            let carry_out = sum > 0xFF;
-            let overflow = ((a ^ result) & (operand ^ result) & 0x80) != 0;
+        // BCD 모드 체크
+        if self.get_flag(StatusRegister::DECIMAL) {
+            let (result, carry_out) = self.bcd_add(a, value, carry == 1);
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
+            let overflow = (!(a ^ value) & (a ^ result) & 0x80) != 0;
+            self.update_flags_arithmetic(result, carry_out, overflow);
+        } else {
+            println!(
+                "[DEBUG] ADC - A: ${:02X}, M: ${:02X}, C: {}",
+                a, value, carry
+            );
+            let sum = a.wrapping_add(value).wrapping_add(carry);
+            let carry_out = (a as u16 + value as u16 + carry as u16) > 0xFF;
 
-            self.set(RegisterType::A, RegisterData::Bit8(result));
-            self.update_arithmetic_flags(result, carry_out, overflow);
+            // Calculate overflow
+            let overflow = (a & 0x80) == (value & 0x80) && (a & 0x80) != (sum & 0x80);
+
+            println!(
+                "[DEBUG] ADC - Result: ${:02X}, Carry: {}, Overflow: {}",
+                sum, carry_out, overflow
+            );
+            self.set_value(RegisterType::A, RegisterData::Bit8(sum));
+            self.update_flags_arithmetic(sum, carry_out, overflow);
         }
 
         Ok(())
     }
 
-    fn sbc(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing SBC with operand: 0x{:04X}", decode.operand);
+    fn sbc(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing SBC with mode: {:?}", mode);
 
-        let operand = decode.operand as u8;
-        let a = self.get(RegisterType::A).as_u8();
-        let status = self.get(RegisterType::P).as_u8();
-        let carry = (status & 0x01) != 0;
-        let decimal_mode = (status & 0x08) != 0;
+        let value = match mode {
+            AddressModeValue::Immediate(val) => val,
+            AddressModeValue::ZeroPage(addr) => self.read_memory(addr as u16)?,
+            AddressModeValue::ZeroPageX(addr) => {
+                let effective_addr =
+                    addr.wrapping_add(self.get_value(RegisterType::X).as_u8()) as u16;
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::Absolute(addr) => self.read_memory(addr)?,
+            AddressModeValue::AbsoluteX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8() as u16;
+                let effective_addr = addr.wrapping_add(x);
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::AbsoluteY(addr) => {
+                let y = self.get_value(RegisterType::Y).as_u8() as u16;
+                let effective_addr = addr.wrapping_add(y);
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::IndirectX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8();
+                let ptr = addr.wrapping_add(x) as u16;
+                let low = self.read_memory(ptr)? as u16;
+                let high = self.read_memory(ptr.wrapping_add(1))? as u16;
+                let effective_addr = (high << 8) | low;
+                self.read_memory(effective_addr)?
+            }
+            AddressModeValue::IndirectY(addr) => {
+                let ptr = addr as u16;
+                let low = self.read_memory(ptr)? as u16;
+                let high = self.read_memory(ptr.wrapping_add(1))? as u16;
+                let base_addr = (high << 8) | low;
+                let y = self.get_value(RegisterType::Y).as_u8() as u16;
+                let effective_addr = base_addr.wrapping_add(y);
+                self.read_memory(effective_addr)?
+            }
+            _ => return Err(Error::InvalidAddressingMode("SBC")),
+        };
 
-        if decimal_mode {
-            let (result, carry_out) = self.bcd_sub(a, operand, carry);
-            self.set(RegisterType::A, RegisterData::Bit8(result));
-            self.update_bcd_flags(result, carry_out);
+        let a = self.get_value(RegisterType::A).as_u8();
+        let borrow = if self.get_flag(StatusRegister::CARRY) {
+            0
         } else {
-            let operand = operand.wrapping_add(!carry as u8);
-            let result = a.wrapping_sub(operand);
+            1
+        };
 
-            let carry_out = a >= operand;
-            let overflow = ((a ^ operand) & (a ^ result) & 0x80) != 0;
-
-            self.set(RegisterType::A, RegisterData::Bit8(result));
-            self.update_arithmetic_flags(result, carry_out, overflow);
+        // BCD 모드 체크
+        if self.get_flag(StatusRegister::DECIMAL) {
+            let (result, carry_out) = self.bcd_sub(a, value, borrow == 0);
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
+            self.set_flag(StatusRegister::CARRY, carry_out);
+            self.set_flag(StatusRegister::ZERO, result == 0);
+            self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+        } else {
+            let diff = a as i16 - value as i16 - borrow;
+            let result = diff as u8;
+            self.set_value(RegisterType::A, RegisterData::Bit8(result));
+            self.set_flag(StatusRegister::CARRY, diff >= 0);
+            self.set_flag(StatusRegister::ZERO, result == 0);
+            self.set_flag(StatusRegister::NEGATIVE, result & 0x80 != 0);
+            self.set_flag(
+                StatusRegister::OVERFLOW,
+                ((a ^ value) & (a ^ result) & 0x80) != 0,
+            );
         }
 
         Ok(())
     }
 
-    fn inc(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing INC with operand: 0x{:04X}", decode.operand);
+    fn inc(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing INC with mode: {:?}", mode);
 
-        let addr = decode.operand;
-        let value = self.read_memory(addr).map_err(|e| e.to_string())?;
-        let result = value.wrapping_add(1);
+        let addr = match mode {
+            AddressModeValue::ZeroPage(addr) => addr as u16,
+            AddressModeValue::ZeroPageX(addr) => {
+                let effective_addr = addr.wrapping_add(self.get_value(RegisterType::X).as_u8());
+                effective_addr as u16
+            }
+            AddressModeValue::Absolute(addr) => addr,
+            AddressModeValue::AbsoluteX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8() as u16;
+                addr.wrapping_add(x)
+            }
+            _ => return Err(Error::InvalidAddressingMode("INC")),
+        };
 
-        self.write_memory(addr, result).map_err(|e| e.to_string())?;
-        self.update_nz_flags(result);
+        let value = self.read_memory(addr)?.wrapping_add(1);
+        self.write_memory(addr, value)?;
+
+        // Update flags
+        self.set_flag(StatusRegister::ZERO, value == 0);
+        self.set_flag(StatusRegister::NEGATIVE, value & 0x80 != 0);
 
         Ok(())
     }
 
-    fn dec(&mut self, _mode: AddressMode, decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing DEC with operand: 0x{:04X}", decode.operand);
+    fn dec(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        println!("[CPU] Executing DEC with mode: {:?}", mode);
 
-        let addr = decode.operand;
-        let value = self.read_memory(addr).map_err(|e| e.to_string())?;
-        let result = value.wrapping_sub(1);
+        let addr = match mode {
+            AddressModeValue::ZeroPage(addr) => addr as u16,
+            AddressModeValue::ZeroPageX(addr) => {
+                let effective_addr = addr.wrapping_add(self.get_value(RegisterType::X).as_u8());
+                effective_addr as u16
+            }
+            AddressModeValue::Absolute(addr) => addr,
+            AddressModeValue::AbsoluteX(addr) => {
+                let x = self.get_value(RegisterType::X).as_u8() as u16;
+                addr.wrapping_add(x)
+            }
+            _ => return Err(Error::InvalidAddressingMode("DEC")),
+        };
 
-        self.write_memory(addr, result).map_err(|e| e.to_string())?;
-        self.update_nz_flags(result);
+        let value = self.read_memory(addr)?.wrapping_sub(1);
+        self.write_memory(addr, value)?;
+
+        // Update flags
+        self.set_flag(StatusRegister::ZERO, value == 0);
+        self.set_flag(StatusRegister::NEGATIVE, value & 0x80 != 0);
 
         Ok(())
     }
 
     fn inx(&mut self) -> Result<()> {
         println!("[CPU] Executing INX");
+        let value = self.get_value(RegisterType::X).as_u8().wrapping_add(1);
+        self.set_value(RegisterType::X, RegisterData::Bit8(value));
 
-        let x = self.get(RegisterType::X).as_u8();
-        let result = x.wrapping_add(1);
-
-        self.set(RegisterType::X, RegisterData::Bit8(result));
-        self.update_nz_flags(result);
+        // Update flags
+        self.set_flag(StatusRegister::ZERO, value == 0);
+        self.set_flag(StatusRegister::NEGATIVE, value & 0x80 != 0);
 
         Ok(())
     }
 
     fn iny(&mut self) -> Result<()> {
         println!("[CPU] Executing INY");
+        let value = self.get_value(RegisterType::Y).as_u8().wrapping_add(1);
+        self.set_value(RegisterType::Y, RegisterData::Bit8(value));
 
-        let y = self.get(RegisterType::Y).as_u8();
-        let result = y.wrapping_add(1);
-
-        self.set(RegisterType::Y, RegisterData::Bit8(result));
-        self.update_nz_flags(result);
+        // Update flags
+        self.set_flag(StatusRegister::ZERO, value == 0);
+        self.set_flag(StatusRegister::NEGATIVE, value & 0x80 != 0);
 
         Ok(())
     }
 
     fn dex(&mut self) -> Result<()> {
         println!("[CPU] Executing DEX");
+        let value = self.get_value(RegisterType::X).as_u8().wrapping_sub(1);
+        self.set_value(RegisterType::X, RegisterData::Bit8(value));
 
-        let x = self.get(RegisterType::X).as_u8();
-        let result = x.wrapping_sub(1);
-
-        self.set(RegisterType::X, RegisterData::Bit8(result));
-        self.update_nz_flags(result);
+        // Update flags
+        self.set_flag(StatusRegister::ZERO, value == 0);
+        self.set_flag(StatusRegister::NEGATIVE, value & 0x80 != 0);
 
         Ok(())
     }
 
     fn dey(&mut self) -> Result<()> {
         println!("[CPU] Executing DEY");
+        let value = self.get_value(RegisterType::Y).as_u8().wrapping_sub(1);
+        self.set_value(RegisterType::Y, RegisterData::Bit8(value));
 
-        let y = self.get(RegisterType::Y).as_u8();
-        let result = y.wrapping_sub(1);
-
-        self.set(RegisterType::Y, RegisterData::Bit8(result));
-        self.update_nz_flags(result);
+        // Update flags
+        self.set_flag(StatusRegister::ZERO, value == 0);
+        self.set_flag(StatusRegister::NEGATIVE, value & 0x80 != 0);
 
         Ok(())
     }

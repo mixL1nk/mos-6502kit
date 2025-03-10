@@ -44,6 +44,7 @@ impl MemoryBus for SharedMemoryBus {
         if let Err(e) = memory.set(address, value) {
             println!("[MemoryBus] Write error at 0x{:04x}: {}", address, e);
         } else {
+            // TODO: DEBUG 일때만 출력하게 수정 필요
             println!(
                 "[MemoryBus] Write: addr=0x{:04x}, data=0x{:02x}",
                 address, value
@@ -92,7 +93,7 @@ impl BreadBoard {
 
     /// CPU PC 설정
     pub fn set_pc(&mut self, address: u16) {
-        self.cpu.set(
+        self.cpu.set_value(
             cpu::register::RegisterType::PC,
             cpu::register::RegisterData::Bit16(address),
         );
@@ -100,7 +101,8 @@ impl BreadBoard {
 
     /// CPU 실행 사이클
     pub fn run_cpu_cycle(&mut self) -> Result<()> {
-        self.cpu.execute_cycle()
+        self.cpu.run()?;
+        Ok(())
     }
 
     /// 메모리 내용 덤프
@@ -113,12 +115,12 @@ impl BreadBoard {
     pub fn dump_cpu(&self) -> String {
         format!(
             "PC: ${:04X}, A: ${:02X}, X: ${:02X}, Y: ${:02X}, S: ${:02X}, P: ${:02X}",
-            self.cpu.get(cpu::register::RegisterType::PC).as_u16(),
-            self.cpu.get(cpu::register::RegisterType::A).as_u8(),
-            self.cpu.get(cpu::register::RegisterType::X).as_u8(),
-            self.cpu.get(cpu::register::RegisterType::Y).as_u8(),
-            self.cpu.get(cpu::register::RegisterType::S).as_u8(),
-            self.cpu.get(cpu::register::RegisterType::P).as_u8()
+            self.cpu.get_value(cpu::register::RegisterType::PC).as_u16(),
+            self.cpu.get_value(cpu::register::RegisterType::A).as_u8(),
+            self.cpu.get_value(cpu::register::RegisterType::X).as_u8(),
+            self.cpu.get_value(cpu::register::RegisterType::Y).as_u8(),
+            self.cpu.get_value(cpu::register::RegisterType::S).as_u8(),
+            self.cpu.get_value(cpu::register::RegisterType::P).as_u8()
         )
     }
 }
