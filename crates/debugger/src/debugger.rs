@@ -285,5 +285,8 @@ mod tests {
         debugger
             .run_cpu()
             .expect("an error occurred while running the CPU");
+        
+        let context = debugger.get_cpu().unwrap().get_context().unwrap();
+        assert_eq!(context.pc, 0x1002);
     }
 }
