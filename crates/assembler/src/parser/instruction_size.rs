@@ -44,7 +44,7 @@ impl InstructionSizeCalculator {
             | Instruction::BVS(_) => 2,
 
             // Shift and rotate instructions
-            Instruction::LSR(mode) 
+            Instruction::LSR(mode)
             | Instruction::ASL(mode)
             | Instruction::ROL(mode)
             | Instruction::ROR(mode) => match mode {
@@ -89,56 +89,56 @@ impl InstructionSizeCalculator {
                 | AddressModeValue::AbsoluteY(_) => 3,
 
                 AddressModeValue::Accumulator | AddressModeValue::Implied => 1,
-                
+
                 AddressModeValue::Indirect(_) => 3,
             },
-            
+
             // Jump instructions
             Instruction::JMP(mode) => match mode {
                 AddressModeValue::Absolute(_) | AddressModeValue::Indirect(_) => 3,
                 _ => 3, // Default for JMP
             },
-            
+
             Instruction::JSR(mode) => match mode {
                 AddressModeValue::Absolute(_) => 3,
                 _ => 3, // Default for JSR
             },
         }
     }
-    
+
     pub fn estimate_instruction_size(mnemonic: &str) -> u16 {
         match mnemonic {
             // Single byte instructions
-            "INX" | "INY" | "DEX" | "DEY" | "TAX" | "TXA" | "TAY" | "TYA" | "CLC"
-            | "SEC" | "CLI" | "SEI" | "CLV" | "CLD" | "SED" | "NOP" | "BRK" | "RTI"
-            | "RTS" | "PHA" | "PLA" | "PHP" | "PLP" | "TSX" | "TXS" => 1,
+            "INX" | "INY" | "DEX" | "DEY" | "TAX" | "TXA" | "TAY" | "TYA" | "CLC" | "SEC"
+            | "CLI" | "SEI" | "CLV" | "CLD" | "SED" | "NOP" | "BRK" | "RTI" | "RTS" | "PHA"
+            | "PLA" | "PHP" | "PLP" | "TSX" | "TXS" => 1,
 
             // Branch instructions (always 2 bytes)
             "BCC" | "BCS" | "BEQ" | "BNE" | "BMI" | "BPL" | "BVC" | "BVS" => 2,
-            
+
             // Load/Store instructions (usually 2 bytes)
             "LDA" | "LDX" | "LDY" | "STA" | "STX" | "STY" => 2,
-            
+
             // Compare instructions (usually 2 bytes)
             "CMP" | "CPX" | "CPY" => 2,
-            
+
             // Arithmetic/Logical instructions (usually 2 bytes)
             "ADC" | "SBC" | "AND" | "ORA" | "EOR" => 2,
-            
+
             // Shift/Rotate instructions (usually 2 bytes)
             "ASL" | "LSR" | "ROL" | "ROR" => 2,
-            
+
             // Increment/Decrement instructions (usually 2 bytes)
             "INC" | "DEC" => 2,
-            
+
             // Bit Test instructions
             "BIT" => 2,
-            
+
             // Jump instructions (always 3 bytes)
             "JMP" | "JSR" => 3,
-            
+
             // Default for other instructions (conservative estimate)
             _ => 2,
         }
     }
-} 
+}

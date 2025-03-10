@@ -9,6 +9,12 @@ pub struct BranchParser {
     current_address: u16,
 }
 
+impl Default for BranchParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BranchParser {
     pub fn new() -> Self {
         Self { current_address: 0 }
@@ -29,7 +35,10 @@ impl BranchParser {
             }
             Token::Label(label) => {
                 let target = addressing_parser.resolve_label(label)?;
-                println!("[DEBUG] Resolved label '{}' to address ${:04X}", label, target);
+                println!(
+                    "[DEBUG] Resolved label '{}' to address ${:04X}",
+                    label, target
+                );
                 Ok(AddressModeValue::Absolute(target))
             }
             _ => Err(Error::InvalidAddressingMode("Expected branch target")),
@@ -39,19 +48,23 @@ impl BranchParser {
     pub fn calculate_branch_offset(&self, target_address: u16) -> Result<i8> {
         let next_pc = self.current_address.wrapping_add(2);
         let offset = target_address as i32 - next_pc as i32;
-        
+
         println!("[DEBUG] Branch offset calculation:");
         println!("[DEBUG]   Current address: ${:04X}", self.current_address);
         println!("[DEBUG]   Next PC: ${:04X}", next_pc);
         println!("[DEBUG]   Target address: ${:04X}", target_address);
-        println!("[DEBUG]   Offset: {} (0x{:02X})", offset, (offset as i8) as u8);
-        
+        println!(
+            "[DEBUG]   Offset: {} (0x{:02X})",
+            offset,
+            (offset as i8) as u8
+        );
+
         if !(-128..=127).contains(&offset) {
             return Err(Error::AssemblerBranchOutOfRange(
                 "Branch target too far".to_string(),
             ));
         }
-        
+
         Ok(offset as i8)
     }
-} 
+}

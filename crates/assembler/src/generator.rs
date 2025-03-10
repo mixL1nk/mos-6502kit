@@ -2,6 +2,19 @@ use common::Result;
 use error::Error;
 use types::{AddressModeValue, Instruction};
 
+/// 어드레싱 모드별 opcode를 저장하는 구조체
+#[derive(Debug, Clone, Copy)]
+struct AddressModeOpcodes {
+    indirect_x: u8,  // (Indirect,X)
+    zero_page: u8,   // Zero Page
+    immediate: u8,   // Immediate
+    absolute: u8,    // Absolute
+    indirect_y: u8,  // (Indirect),Y
+    zero_page_x: u8, // Zero Page,X
+    absolute_y: u8,  // Absolute,Y
+    absolute_x: u8,  // Absolute,X
+}
+
 /// 6502 명령어를 기계어로 변환하는 생성기
 pub struct Generator {
     pub code: Vec<u8>,
@@ -33,16 +46,57 @@ impl Generator {
         match instruction {
             // 로드/스토어 명령어
             Instruction::LDA(mode) => self.generate_opcode_with_address(
-                0xA1, 0xA5, 0xA9, 0xAD, 0xB1, 0xB5, 0xB9, 0xBD, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0xA1,
+                    zero_page: 0xA5,
+                    immediate: 0xA9,
+                    absolute: 0xAD,
+                    indirect_y: 0xB1,
+                    zero_page_x: 0xB5,
+                    absolute_y: 0xB9,
+                    absolute_x: 0xBD,
+                },
+                mode,
             )?,
-            Instruction::LDX(mode) => {
-                self.generate_opcode_with_address(0, 0xA6, 0xA2, 0xAE, 0, 0, 0xBE, 0, mode)?
-            }
-            Instruction::LDY(mode) => {
-                self.generate_opcode_with_address(0, 0xA4, 0xA0, 0xAC, 0, 0xB4, 0, 0xBC, mode)?
-            }
-            Instruction::STA(mode) => self
-                .generate_opcode_with_address(0x81, 0x85, 0, 0x8D, 0x91, 0x95, 0x99, 0x9D, mode)?,
+            Instruction::LDX(mode) => self.generate_opcode_with_address(
+                AddressModeOpcodes {
+                    indirect_x: 0,
+                    zero_page: 0xA6,
+                    immediate: 0xA2,
+                    absolute: 0xAE,
+                    indirect_y: 0,
+                    zero_page_x: 0,
+                    absolute_y: 0xBE,
+                    absolute_x: 0,
+                },
+                mode,
+            )?,
+            Instruction::LDY(mode) => self.generate_opcode_with_address(
+                AddressModeOpcodes {
+                    indirect_x: 0,
+                    zero_page: 0xA4,
+                    immediate: 0xA0,
+                    absolute: 0xAC,
+                    indirect_y: 0,
+                    zero_page_x: 0xB4,
+                    absolute_y: 0,
+                    absolute_x: 0xBC,
+                },
+                mode,
+            )?,
+            Instruction::STA(mode) => self.generate_opcode_with_address(
+                AddressModeOpcodes {
+                    indirect_x: 0x81,
+                    zero_page: 0x85,
+                    immediate: 0,
+                    absolute: 0x8D,
+                    indirect_y: 0x91,
+                    zero_page_x: 0x95,
+                    absolute_y: 0x99,
+                    absolute_x: 0x9D,
+                },
+                mode,
+            )?,
             Instruction::STX(mode) => match mode {
                 AddressModeValue::ZeroPage(_) => self.emit_opcode_with_byte(0x86, mode)?,
                 AddressModeValue::ZeroPageY(_) => self.emit_opcode_with_byte(0x96, mode)?,
@@ -58,24 +112,84 @@ impl Generator {
 
             // 산술/논리 연산
             Instruction::ADC(mode) => self.generate_opcode_with_address(
-                0x61, 0x65, 0x69, 0x6D, 0x71, 0x75, 0x79, 0x7D, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0x61,
+                    zero_page: 0x65,
+                    immediate: 0x69,
+                    absolute: 0x6D,
+                    indirect_y: 0x71,
+                    zero_page_x: 0x75,
+                    absolute_y: 0x79,
+                    absolute_x: 0x7D,
+                },
+                mode,
             )?,
             Instruction::SBC(mode) => self.generate_opcode_with_address(
-                0xE1, 0xE5, 0xE9, 0xED, 0xF1, 0xF5, 0xF9, 0xFD, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0xE1,
+                    zero_page: 0xE5,
+                    immediate: 0xE9,
+                    absolute: 0xED,
+                    indirect_y: 0xF1,
+                    zero_page_x: 0xF5,
+                    absolute_y: 0xF9,
+                    absolute_x: 0xFD,
+                },
+                mode,
             )?,
             Instruction::AND(mode) => self.generate_opcode_with_address(
-                0x21, 0x25, 0x29, 0x2D, 0x31, 0x35, 0x39, 0x3D, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0x21,
+                    zero_page: 0x25,
+                    immediate: 0x29,
+                    absolute: 0x2D,
+                    indirect_y: 0x31,
+                    zero_page_x: 0x35,
+                    absolute_y: 0x39,
+                    absolute_x: 0x3D,
+                },
+                mode,
             )?,
             Instruction::ORA(mode) => self.generate_opcode_with_address(
-                0x01, 0x05, 0x09, 0x0D, 0x11, 0x15, 0x19, 0x1D, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0x01,
+                    zero_page: 0x05,
+                    immediate: 0x09,
+                    absolute: 0x0D,
+                    indirect_y: 0x11,
+                    zero_page_x: 0x15,
+                    absolute_y: 0x19,
+                    absolute_x: 0x1D,
+                },
+                mode,
             )?,
             Instruction::EOR(mode) => self.generate_opcode_with_address(
-                0x41, 0x45, 0x49, 0x4D, 0x51, 0x55, 0x59, 0x5D, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0x41,
+                    zero_page: 0x45,
+                    immediate: 0x49,
+                    absolute: 0x4D,
+                    indirect_y: 0x51,
+                    zero_page_x: 0x55,
+                    absolute_y: 0x59,
+                    absolute_x: 0x5D,
+                },
+                mode,
             )?,
 
             // 비교 명령어
             Instruction::CMP(mode) => self.generate_opcode_with_address(
-                0xC1, 0xC5, 0xC9, 0xCD, 0xD1, 0xD5, 0xD9, 0xDD, mode,
+                AddressModeOpcodes {
+                    indirect_x: 0xC1,
+                    zero_page: 0xC5,
+                    immediate: 0xC9,
+                    absolute: 0xCD,
+                    indirect_y: 0xD1,
+                    zero_page_x: 0xD5,
+                    absolute_y: 0xD9,
+                    absolute_x: 0xDD,
+                },
+                mode,
             )?,
             Instruction::CPX(mode) => match mode {
                 AddressModeValue::Immediate(_) => self.emit_opcode_with_byte(0xE0, mode)?,
@@ -258,29 +372,33 @@ impl Generator {
         Ok(())
     }
 
-    //TODO: 인자가 너무 많다. 방식을 바꿔야 할거 같다.
     /// 다양한 어드레싱 모드에 따라 적절한 opcode를 선택하여 생성합니다
     fn generate_opcode_with_address(
         &mut self,
-        ind_x: u8, // (Indirect,X)
-        zp: u8,    // Zero Page
-        imm: u8,   // Immediate
-        abs: u8,   // Absolute
-        ind_y: u8, // (Indirect),Y
-        zp_x: u8,  // Zero Page,X
-        abs_y: u8, // Absolute,Y
-        abs_x: u8, // Absolute,X
+        opcodes: AddressModeOpcodes,
         mode: AddressModeValue,
     ) -> Result<()> {
         match mode {
-            AddressModeValue::IndirectX(_) => self.emit_opcode_with_byte(ind_x, mode)?,
-            AddressModeValue::ZeroPage(_) => self.emit_opcode_with_byte(zp, mode)?,
-            AddressModeValue::Immediate(_) => self.emit_opcode_with_byte(imm, mode)?,
-            AddressModeValue::Absolute(_) => self.emit_opcode_with_word(abs, mode)?,
-            AddressModeValue::IndirectY(_) => self.emit_opcode_with_byte(ind_y, mode)?,
-            AddressModeValue::ZeroPageX(_) => self.emit_opcode_with_byte(zp_x, mode)?,
-            AddressModeValue::AbsoluteY(_) => self.emit_opcode_with_word(abs_y, mode)?,
-            AddressModeValue::AbsoluteX(_) => self.emit_opcode_with_word(abs_x, mode)?,
+            AddressModeValue::IndirectX(_) => {
+                self.emit_opcode_with_byte(opcodes.indirect_x, mode)?
+            }
+            AddressModeValue::ZeroPage(_) => self.emit_opcode_with_byte(opcodes.zero_page, mode)?,
+            AddressModeValue::Immediate(_) => {
+                self.emit_opcode_with_byte(opcodes.immediate, mode)?
+            }
+            AddressModeValue::Absolute(_) => self.emit_opcode_with_word(opcodes.absolute, mode)?,
+            AddressModeValue::IndirectY(_) => {
+                self.emit_opcode_with_byte(opcodes.indirect_y, mode)?
+            }
+            AddressModeValue::ZeroPageX(_) => {
+                self.emit_opcode_with_byte(opcodes.zero_page_x, mode)?
+            }
+            AddressModeValue::AbsoluteY(_) => {
+                self.emit_opcode_with_word(opcodes.absolute_y, mode)?
+            }
+            AddressModeValue::AbsoluteX(_) => {
+                self.emit_opcode_with_word(opcodes.absolute_x, mode)?
+            }
             _ => return Err(Error::InvalidAddressingMode("Instruction")),
         }
         Ok(())

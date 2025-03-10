@@ -12,7 +12,7 @@ use error::Error;
 use std::collections::HashMap;
 use types::{AddressModeValue, Instruction};
 
-pub struct Parser {
+pub struct Parser<'a> {
     token_parser: TokenParser,
     instruction_parser: InstructionParser,
     addressing_parser: AddressingModeParser,
@@ -21,10 +21,10 @@ pub struct Parser {
     label_collector: LabelCollector,
     org: u16,
     current_address: u16,
-    strategy_registry: StrategyRegistry,
+    strategy_registry: StrategyRegistry<'a>,
 }
 
-impl Parser {
+impl Parser<'_> {
     pub fn new(tokens: Vec<TokenInfo>) -> Self {
         let labels = HashMap::new();
         let addressing_parser = AddressingModeParser::new(labels);
@@ -33,11 +33,11 @@ impl Parser {
         let branch_instruction_parser = BranchInstructionParser::new();
         let jump_instruction_parser = JumpInstructionParser::new();
         let strategy_registry = StrategyRegistry::new();
-        
+
         let default_org = 0x8000;
         let label_collector = LabelCollector::new(default_org);
 
-        let parser = Self {
+        Self {
             token_parser,
             instruction_parser,
             addressing_parser,
@@ -47,9 +47,7 @@ impl Parser {
             org: default_org,
             current_address: default_org,
             strategy_registry,
-        };
-
-        parser
+        }
     }
 
     pub fn set_org(&mut self, org: u16) {
@@ -66,7 +64,8 @@ impl Parser {
 
     pub fn parse(&mut self) -> Result<Vec<Instruction>> {
         // First pass: collect labels and .ORG
-        self.label_collector.collect_labels(&mut self.token_parser, &mut self.addressing_parser)?;
+        self.label_collector
+            .collect_labels(&mut self.token_parser, &mut self.addressing_parser)?;
 
         // Second pass: generate instructions
         self.reset_for_second_pass();
@@ -132,12 +131,16 @@ impl Parser {
                 if self.is_single_byte_instruction(&m) {
                     self.token_parser.skip_whitespace();
                     let mode = AddressModeValue::Implied;
-                    let strategy = self.strategy_registry.get_strategy(&m)
+                    let strategy = self
+                        .strategy_registry
+                        .get_strategy(&m)
                         .expect("Strategy should exist for single byte instruction");
                     let instruction = strategy.parse(&self.instruction_parser, mode)?;
                     self.current_address = instruction_start.wrapping_add(1);
-                    self.instruction_parser.set_current_address(self.current_address);
-                    self.branch_instruction_parser.set_current_address(self.current_address);
+                    self.instruction_parser
+                        .set_current_address(self.current_address);
+                    self.branch_instruction_parser
+                        .set_current_address(self.current_address);
                     return Ok(Some(instruction));
                 }
 
@@ -148,17 +151,19 @@ impl Parser {
                         &mut self.token_parser,
                         &self.addressing_parser,
                     )?;
-                    
+
                     if let Some(ref instr) = instruction {
                         let size = InstructionSizeCalculator::get_instruction_size(instr);
                         self.current_address = instruction_start.wrapping_add(size);
-                        self.instruction_parser.set_current_address(self.current_address);
-                        self.branch_instruction_parser.set_current_address(self.current_address);
+                        self.instruction_parser
+                            .set_current_address(self.current_address);
+                        self.branch_instruction_parser
+                            .set_current_address(self.current_address);
                     }
-                    
+
                     return Ok(instruction);
                 }
-                
+
                 // Handle jump instructions
                 if self.is_jump_instruction(&m) {
                     let instruction = self.jump_instruction_parser.parse_jump_instruction(
@@ -166,27 +171,35 @@ impl Parser {
                         &mut self.token_parser,
                         &self.addressing_parser,
                     )?;
-                    
+
                     if let Some(ref instr) = instruction {
                         let size = InstructionSizeCalculator::get_instruction_size(instr);
                         self.current_address = instruction_start.wrapping_add(size);
-                        self.instruction_parser.set_current_address(self.current_address);
-                        self.branch_instruction_parser.set_current_address(self.current_address);
+                        self.instruction_parser
+                            .set_current_address(self.current_address);
+                        self.branch_instruction_parser
+                            .set_current_address(self.current_address);
                     }
-                    
+
                     return Ok(instruction);
                 }
 
                 // Handle other instructions with strategies
                 if self.strategy_registry.has_strategy(&m) {
-                    let mode = self.addressing_parser.parse_addressing_mode(&mut self.token_parser)?;
-                    let strategy = self.strategy_registry.get_strategy(&m)
+                    let mode = self
+                        .addressing_parser
+                        .parse_addressing_mode(&mut self.token_parser)?;
+                    let strategy = self
+                        .strategy_registry
+                        .get_strategy(&m)
                         .expect("Strategy was just checked");
                     let instruction = strategy.parse(&self.instruction_parser, mode)?;
                     let size = InstructionSizeCalculator::get_instruction_size(&instruction);
                     self.current_address = instruction_start.wrapping_add(size);
-                    self.instruction_parser.set_current_address(self.current_address);
-                    self.branch_instruction_parser.set_current_address(self.current_address);
+                    self.instruction_parser
+                        .set_current_address(self.current_address);
+                    self.branch_instruction_parser
+                        .set_current_address(self.current_address);
                     Ok(Some(instruction))
                 } else {
                     // Fallback for instructions without strategies
@@ -203,19 +216,41 @@ impl Parser {
     fn is_single_byte_instruction(&self, mnemonic: &str) -> bool {
         matches!(
             mnemonic,
-            "INX" | "INY" | "DEX" | "DEY" | "TAX" | "TXA" | "TAY" | "TYA" | "CLC"
-            | "SEC" | "CLI" | "SEI" | "CLV" | "CLD" | "SED" | "NOP" | "BRK" | "RTI"
-            | "RTS" | "PHA" | "PLA" | "PHP" | "PLP" | "TSX" | "TXS"
+            "INX"
+                | "INY"
+                | "DEX"
+                | "DEY"
+                | "TAX"
+                | "TXA"
+                | "TAY"
+                | "TYA"
+                | "CLC"
+                | "SEC"
+                | "CLI"
+                | "SEI"
+                | "CLV"
+                | "CLD"
+                | "SED"
+                | "NOP"
+                | "BRK"
+                | "RTI"
+                | "RTS"
+                | "PHA"
+                | "PLA"
+                | "PHP"
+                | "PLP"
+                | "TSX"
+                | "TXS"
         )
     }
-    
+
     fn is_branch_instruction(&self, mnemonic: &str) -> bool {
         matches!(
             mnemonic,
             "BCC" | "BCS" | "BEQ" | "BNE" | "BMI" | "BPL" | "BVC" | "BVS"
         )
     }
-    
+
     fn is_jump_instruction(&self, mnemonic: &str) -> bool {
         matches!(mnemonic, "JMP" | "JSR")
     }

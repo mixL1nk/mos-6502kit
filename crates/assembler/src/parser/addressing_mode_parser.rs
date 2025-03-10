@@ -29,7 +29,10 @@ impl AddressingModeParser {
         &self.labels
     }
 
-    pub fn parse_addressing_mode(&self, token_parser: &mut TokenParser) -> Result<AddressModeValue> {
+    pub fn parse_addressing_mode(
+        &self,
+        token_parser: &mut TokenParser,
+    ) -> Result<AddressModeValue> {
         token_parser.skip_whitespace();
 
         let token = token_parser.peek()?.token.clone();
@@ -178,4 +181,4 @@ impl AddressingModeParser {
             }
         }
     }
-} 
+}

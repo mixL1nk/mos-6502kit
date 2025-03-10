@@ -7,6 +7,12 @@ use types::{AddressModeValue, Instruction};
 /// Jump instruction parser
 pub struct JumpInstructionParser;
 
+impl Default for JumpInstructionParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JumpInstructionParser {
     pub fn new() -> Self {
         Self
@@ -19,9 +25,9 @@ impl JumpInstructionParser {
         addressing_parser: &AddressingModeParser,
     ) -> Result<Option<Instruction>> {
         token_parser.skip_whitespace();
-        
+
         let mode = addressing_parser.parse_addressing_mode(token_parser)?;
-        
+
         match mnemonic {
             "JMP" => match mode {
                 AddressModeValue::Absolute(addr) => {
@@ -41,4 +47,4 @@ impl JumpInstructionParser {
             _ => Err(Error::InvalidAddressingMode("Unsupported jump instruction")),
         }
     }
-} 
+}

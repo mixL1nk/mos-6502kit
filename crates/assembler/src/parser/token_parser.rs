@@ -48,4 +48,4 @@ impl TokenParser {
     pub fn set_current_position(&mut self, position: usize) {
         self.current = position;
     }
-} 
+}

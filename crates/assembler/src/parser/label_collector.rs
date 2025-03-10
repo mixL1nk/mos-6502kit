@@ -90,4 +90,4 @@ impl LabelCollector {
 
         Ok(())
     }
-} 
+}

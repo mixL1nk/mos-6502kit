@@ -316,7 +316,10 @@ fn test_branch_instructions() {
     ";
     // 0600: a2 00 a0 00 e8 c8 c0 05 d0 fa a9 42
     let machine_code = assembler.assemble(source).unwrap();
-    println!("[TEST] Assembled machine code: {:?}", assembler.format_hex(&machine_code));
+    println!(
+        "[TEST] Assembled machine code: {:?}",
+        assembler.format_hex(&machine_code)
+    );
 
     // 메모리에 기계어 쓰기
     for (addr, &code) in machine_code.iter().enumerate() {

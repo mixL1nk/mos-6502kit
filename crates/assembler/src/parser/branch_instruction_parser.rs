@@ -11,6 +11,12 @@ pub struct BranchInstructionParser {
     branch_parser: BranchParser,
 }
 
+impl Default for BranchInstructionParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BranchInstructionParser {
     pub fn new() -> Self {
         Self {
@@ -29,7 +35,7 @@ impl BranchInstructionParser {
         addressing_parser: &AddressingModeParser,
     ) -> Result<Option<Instruction>> {
         token_parser.skip_whitespace();
-        
+
         let token = token_parser.peek()?.token.clone();
         let mode = match token {
             Token::HexNumber(value) | Token::Number(value) => {
@@ -43,11 +49,11 @@ impl BranchInstructionParser {
             }
             _ => return Err(Error::InvalidAddressingMode("Expected branch target")),
         };
-        
+
         match mode {
             AddressModeValue::Absolute(target) => {
                 let offset = self.branch_parser.calculate_branch_offset(target)?;
-                
+
                 match mnemonic {
                     "BCC" => Ok(Some(Instruction::BCC(offset))),
                     "BCS" => Ok(Some(Instruction::BCS(offset))),
@@ -65,4 +71,4 @@ impl BranchInstructionParser {
             _ => Err(Error::InvalidAddressingMode("Invalid branch target")),
         }
     }
-} 
+}
