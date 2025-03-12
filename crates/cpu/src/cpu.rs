@@ -1,13 +1,13 @@
 //! CPU 에 대한 기본 정보
+use crate::cpu_event::{CPUContext, CPUEvent, EventHandler};
 use crate::instruction::{Fetch, InstructionDecoder};
 use crate::register::{RegisterData, RegisterType, Registers, SpecialRegister8, StatusRegister};
-use std::sync::mpsc::{Receiver, TryRecvError};
 use common::MemoryBus;
 use common::Result;
 use error::Error;
+use std::sync::mpsc::{Receiver, TryRecvError};
 use std::sync::{Arc, Mutex};
 use types::Instruction;
-use crate::cpu_event::{CPUContext, CPUEvent, EventHandler};
 
 /// CPU 인터럽트 타입
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -52,7 +52,6 @@ pub struct CPU {
     pub(crate) debug_enabled: bool,
     /// 인터럽트 채널
     pub(crate) interrupt_channel: Option<Receiver<InterruptType>>,
-
 }
 
 impl Default for CPU {
@@ -76,7 +75,7 @@ impl CPU {
         }
     }
 
-    pub fn get_context(&self) -> Result<CPUContext>{
+    pub fn get_context(&self) -> Result<CPUContext> {
         Ok(CPUContext::into(self.registers.clone().into()))
     }
 
@@ -85,7 +84,7 @@ impl CPU {
     pub fn set_interrupt_channel(&mut self, rx: Receiver<InterruptType>) {
         self.interrupt_channel = Some(rx);
     }
-    
+
     /// 인터럽트 채널 제거
     pub fn clear_interrupt_channel(&mut self) {
         self.interrupt_channel = None;
@@ -162,7 +161,7 @@ impl CPU {
     pub fn set_flag(&mut self, flag: StatusRegister, value: bool) {
         let mut status = self.status_flag();
         status.set(flag, value);
-        
+
         self.emit_event(CPUEvent::FlagChanged {
             flag: flag.to_string(),
             value,
@@ -295,10 +294,7 @@ impl CPU {
                 .lock()
                 .map_err(|_| Error::FailedToLockMemoryBus)?
                 .read(address);
-            self.emit_event(CPUEvent::MemoryRead {
-                address,
-                value,
-            });
+            self.emit_event(CPUEvent::MemoryRead { address, value });
             Ok(value)
         } else {
             Err(Error::MemoryBusConnectionFailed)
@@ -311,10 +307,7 @@ impl CPU {
             bus.lock()
                 .map_err(|_| Error::FailedToLockMemoryBus)?
                 .write(address, value);
-            self.emit_event(CPUEvent::MemoryWrite {
-                address,
-                value,
-            });
+            self.emit_event(CPUEvent::MemoryWrite { address, value });
             Ok(())
         } else {
             Err(Error::MemoryBusConnectionFailed)
@@ -366,16 +359,16 @@ impl CPU {
         // 3. 명령어 실행
         self.execute(decode.clone())?;
 
-        self.emit_event(CPUEvent::StateChanged { state: self.get_context().unwrap() });
+        self.emit_event(CPUEvent::StateChanged {
+            state: self.get_context().unwrap(),
+        });
 
-        self.emit_event(
-            CPUEvent::InstructionExecuted {
-                pc: self.get_pc(),
-                opcode: fetch.opcode,
-                operand: fetch.to_operand_u16(),
-                cycles: decode.cycles,
-            }
-        );
+        self.emit_event(CPUEvent::InstructionExecuted {
+            pc: self.get_pc(),
+            opcode: fetch.opcode,
+            operand: fetch.to_operand_u16(),
+            cycles: decode.cycles,
+        });
         Ok(())
     }
 
@@ -383,7 +376,7 @@ impl CPU {
     fn check_interrupts(&mut self) -> Option<InterruptType> {
         // 실제 하드웨어에서는 여기서 외부 인터럽트 핀의 상태를 체크합니다
 
-         if let Some(rx) = &self.interrupt_channel {
+        if let Some(rx) = &self.interrupt_channel {
             // 비차단 방식으로 메시지 확인
             match rx.try_recv() {
                 Ok(interrupt_type) => {

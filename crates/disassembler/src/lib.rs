@@ -1,3 +1,6 @@
-mod disasm;
+pub mod disasm;
+pub mod formatter;
+pub mod instruction;
 
-pub use disasm::{Disassembler, DInstruction};
+pub use disasm::Disassembler;
+pub use instruction::DInstruction;

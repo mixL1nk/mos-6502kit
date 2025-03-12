@@ -103,15 +103,15 @@ impl std::clone::Clone for CPU {
             cycles: self.cycles,
             event_handlers: vec![],
             debug_enabled: self.debug_enabled,
-            interrupt_channel: None
+            interrupt_channel: None,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::register::StatusRegister;
     use super::*;
+    use crate::register::StatusRegister;
     use std::sync::{Arc, Mutex};
 
     #[test]
@@ -128,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cpu_emit_event(){
+    fn test_cpu_emit_event() {
         let mut cpu = CPU::default();
         cpu.enabled_debug(true);
 

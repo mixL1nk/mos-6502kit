@@ -51,7 +51,6 @@ pub enum Error {
     DebuggerNotAttached,
     DebuggerNoCPU,
 
-
     #[from]
     Io(io::Error),
     // -- External errors

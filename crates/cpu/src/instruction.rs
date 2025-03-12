@@ -46,7 +46,6 @@ impl Fetch {
             _ => panic!("잘못된 오퍼랜드 크기: {}", self.operand.len()),
         }
     }
-
 }
 
 /// 명령어 디코더

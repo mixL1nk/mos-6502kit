@@ -117,15 +117,12 @@ impl Debugger {
                         "[Debugger] MemoryWrite: address: {:#X}, value: {:#X}",
                         address, value
                     );
-                    
                     // 메모리 쓰기 브레이크포인트 확인
                     let has_write_breakpoint = breakpoints
                         .get(address)
-                        .filter(|bp| bp.enabled && 
-                               (bp.access_type == AccessType::Write || 
-                                bp.access_type == AccessType::Access))
+                        .filter(|bp| bp.enabled && (bp.access_type == AccessType::Write || bp.access_type == AccessType::Access))
                         .is_some();
-                        
+
                     if has_write_breakpoint {
                         println!("[Debugger] Write breakpoint hit at {:#X}", address);
                         let _ = tx_clone.send(InterruptType::BRK);
@@ -136,15 +133,13 @@ impl Debugger {
                         "[Debugger] MemoryRead: address: {:#X}, value: {:#X}",
                         address, value
                     );
-                    
                     // 메모리 읽기 브레이크포인트 확인
                     let has_read_breakpoint = breakpoints
                         .get(address)
-                        .filter(|bp| bp.enabled && 
-                               (bp.access_type == AccessType::Read || 
+                        .filter(|bp| bp.enabled &&
+                               (bp.access_type == AccessType::Read ||
                                 bp.access_type == AccessType::Access))
                         .is_some();
-                        
                     if has_read_breakpoint {
                         println!("[Debugger] Read breakpoint hit at {:#X}", address);
                         let _ = tx_clone.send(InterruptType::BRK);
@@ -184,7 +179,7 @@ impl Debugger {
     pub fn read(&self, address: u16) -> Result<u8> {
         self.get_cpu()?.read_memory(address)
     }
-    
+
     pub fn write(&mut self, address: u16, value: u8) -> Result<()> {
         self.get_cpu_mut()?.write_memory(address, value)
     }
@@ -207,11 +202,14 @@ impl Debugger {
     // CPU에 인터럽트 신호 보내기
     pub fn send_interrupt(&self, interrupt_type: InterruptType) -> Result<()> {
         if let Some(sender) = &self.interrupt_sender {
-            sender.send(interrupt_type)
+            sender
+                .send(interrupt_type)
                 .map_err(|_| error::Error::Internal("Failed to send interrupt".to_string()))?;
             Ok(())
         } else {
-            Err(error::Error::Internal("Interrupt channel not initialized".to_string()))
+            Err(error::Error::Internal(
+                "Interrupt channel not initialized".to_string(),
+            ))
         }
     }
 }
@@ -285,7 +283,7 @@ mod tests {
         debugger
             .run_cpu()
             .expect("an error occurred while running the CPU");
-        
+
         let context = debugger.get_cpu().unwrap().get_context().unwrap();
         assert_eq!(context.pc, 0x1002);
     }
