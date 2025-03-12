@@ -1,5 +1,6 @@
+use derive_more::Display;
 /// CPU 명령어의 주소 지정 모드
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
 pub enum AddressMode {
     Implied,
     Accumulator,
