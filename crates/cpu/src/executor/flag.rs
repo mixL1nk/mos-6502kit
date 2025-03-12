@@ -28,7 +28,7 @@ impl CPU {
 
     // 플래그 해제 공통 메서드
     fn clear_flag(&mut self, flag: StatusRegister) -> Result<()> {
-        println!("[CPU] Clearing flag: {:?}", flag);
+        // println!("[CPU] Clearing flag: {:?}", flag);
         let mut status = self.status_flag();
         status.remove(flag);
         self.set_status(status);
@@ -38,7 +38,7 @@ impl CPU {
     // 플래그 설정 공통 메서드 (명령어를 위한 메서드)
     // 기존 set_flag와 이름이 겹치지 않도록 set_flag_instruction으로 명명
     fn set_flag_instruction(&mut self, flag: StatusRegister) -> Result<()> {
-        println!("[CPU] Setting flag: {:?}", flag);
+        // println!("[CPU] Setting flag: {:?}", flag);
         let mut status = self.status_flag();
         status.insert(flag);
         self.set_status(status);

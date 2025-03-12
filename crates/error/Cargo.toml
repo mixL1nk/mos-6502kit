@@ -7,4 +7,4 @@ edition = "2024"
 doctest = false
 
 [dependencies]
-derive_more = { version = "2", features = ["from", "display"] }
+derive_more = { workspace = true }

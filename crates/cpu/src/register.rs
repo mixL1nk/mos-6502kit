@@ -1,7 +1,8 @@
 use bitflags::bitflags;
+use derive_more::Display;
 
 /// 레지스터 타입 (A, X, Y, P, S, PC)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Display)]
 pub enum RegisterType {
     A,
     X,
@@ -74,7 +75,7 @@ impl RegisterValue for GeneralRegister {
 
 bitflags! {
     /// MOS 6502 스테이터스 레지스터 플래그
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
     pub struct StatusRegister: u8 {
         const CARRY             = 0b00000001;
         const ZERO              = 0b00000010;

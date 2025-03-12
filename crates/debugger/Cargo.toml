@@ -7,3 +7,8 @@ edition = "2024"
 doctest = false
 
 [dependencies]
+common = { path = "../common" }
+cpu = { path = "../cpu" }
+memory = { path = "../memory" }
+error = { path = "../error" }
+types = { path = "../types" }

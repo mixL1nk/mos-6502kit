@@ -24,7 +24,7 @@ pub trait LogicalOperation {
 
 impl LogicalOperation for CPU {
     fn and(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing AND with mode: {:?}", mode);
+        // println!("[CPU] Executing AND with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -77,7 +77,7 @@ impl LogicalOperation for CPU {
     }
 
     fn ora(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing ORA with mode: {:?}", mode);
+        // println!("[CPU] Executing ORA with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -130,7 +130,7 @@ impl LogicalOperation for CPU {
     }
 
     fn eor(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing EOR with mode: {:?}", mode);
+        // println!("[CPU] Executing EOR with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -183,7 +183,7 @@ impl LogicalOperation for CPU {
     }
 
     fn bit(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing BIT with mode: {:?}", mode);
+        // println!("[CPU] Executing BIT with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -238,7 +238,7 @@ impl CPU {
     }
 
     fn and(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing AND with mode: {:?}", mode);
+        // println!("[CPU] Executing AND with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -291,7 +291,7 @@ impl CPU {
     }
 
     fn ora(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing ORA with mode: {:?}", mode);
+        // println!("[CPU] Executing ORA with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -344,7 +344,7 @@ impl CPU {
     }
 
     fn eor(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing EOR with mode: {:?}", mode);
+        // println!("[CPU] Executing EOR with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -396,11 +396,11 @@ impl CPU {
         Ok(())
     }
 
-    fn bit(&mut self, mode: AddressModeValue, decode: DecodedInstruction) -> Result<()> {
-        println!(
-            "[CPU] Executing BIT with operand: 0x{:04X}",
-            decode.operand_value
-        );
+    fn bit(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
+        // println!(
+        //     "[CPU] Executing BIT with operand: 0x{:04X}",
+        //     decode.operand_value
+        // );
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
             AddressModeValue::ZeroPage(addr) => self.read_memory(addr as u16)?,

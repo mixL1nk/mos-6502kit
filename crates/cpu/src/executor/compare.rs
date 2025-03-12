@@ -21,7 +21,7 @@ pub trait CompareOperation {
 
 impl CompareOperation for CPU {
     fn cmp(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing CMP with mode: {:?}", mode);
+        // println!("[CPU] Executing CMP with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -74,7 +74,7 @@ impl CompareOperation for CPU {
     }
 
     fn cpx(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing CPX with mode: {:?}", mode);
+        // println!("[CPU] Executing CPX with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -95,7 +95,7 @@ impl CompareOperation for CPU {
     }
 
     fn cpy(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing CPY with mode: {:?}", mode);
+        // println!("[CPU] Executing CPY with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,

@@ -48,7 +48,7 @@ pub trait TransferOperation {
 
 impl TransferOperation for CPU {
     fn lda(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing LDA with mode: {:?}", mode);
+        // println!("[CPU] Executing LDA with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -88,7 +88,7 @@ impl TransferOperation for CPU {
             }
             _ => return Err(Error::InvalidAddressingMode("LDA")),
         };
-        println!("[CPU] Loaded value: 0x{:02X}", value);
+        // println!("[CPU] Loaded value: 0x{:02X}", value);
 
         self.set_value(RegisterType::A, RegisterData::Bit8(value));
         self.update_nz_flags(value);
@@ -96,7 +96,7 @@ impl TransferOperation for CPU {
     }
 
     fn ldx(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing LDX with mode: {:?}", mode);
+        // println!("[CPU] Executing LDX with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -122,7 +122,7 @@ impl TransferOperation for CPU {
     }
 
     fn ldy(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing LDY with mode: {:?}", mode);
+        // println!("[CPU] Executing LDY with mode: {:?}", mode);
 
         let value = match mode {
             AddressModeValue::Immediate(val) => val,
@@ -148,7 +148,7 @@ impl TransferOperation for CPU {
     }
 
     fn sta(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing STA with mode: {:?}", mode);
+        // println!("[CPU] Executing STA with mode: {:?}", mode);
         let value = self.get_value(RegisterType::A).as_u8();
 
         let addr = match mode {
@@ -189,7 +189,7 @@ impl TransferOperation for CPU {
     }
 
     fn stx(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing STX with mode: {:?}", mode);
+        // println!("[CPU] Executing STX with mode: {:?}", mode);
         let value = self.get_value(RegisterType::X).as_u8();
 
         let addr = match mode {
@@ -207,7 +207,7 @@ impl TransferOperation for CPU {
     }
 
     fn sty(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing STY with mode: {:?}", mode);
+        // println!("[CPU] Executing STY with mode: {:?}", mode);
         let value = self.get_value(RegisterType::Y).as_u8();
 
         let addr = match mode {
@@ -225,7 +225,7 @@ impl TransferOperation for CPU {
     }
 
     fn tax(&mut self) -> Result<()> {
-        println!("[CPU] Executing TAX");
+        // println!("[CPU] Executing TAX");
         let value = self.get_value(RegisterType::A).as_u8();
         self.set_value(RegisterType::X, RegisterData::Bit8(value));
         self.update_nz_flags(value);
@@ -233,7 +233,7 @@ impl TransferOperation for CPU {
     }
 
     fn tay(&mut self) -> Result<()> {
-        println!("[CPU] Executing TAY");
+        // println!("[CPU] Executing TAY");
         let value = self.get_value(RegisterType::A).as_u8();
         self.set_value(RegisterType::Y, RegisterData::Bit8(value));
         self.update_nz_flags(value);
@@ -241,7 +241,7 @@ impl TransferOperation for CPU {
     }
 
     fn tsx(&mut self) -> Result<()> {
-        println!("[CPU] Executing TSX");
+        // println!("[CPU] Executing TSX");
         let value = self.get_value(RegisterType::S).as_u8();
         self.set_value(RegisterType::X, RegisterData::Bit8(value));
         self.update_nz_flags(value);
@@ -249,7 +249,7 @@ impl TransferOperation for CPU {
     }
 
     fn txa(&mut self) -> Result<()> {
-        println!("[CPU] Executing TXA");
+        // println!("[CPU] Executing TXA");
         let value = self.get_value(RegisterType::X).as_u8();
         self.set_value(RegisterType::A, RegisterData::Bit8(value));
         self.update_nz_flags(value);
@@ -257,14 +257,14 @@ impl TransferOperation for CPU {
     }
 
     fn txs(&mut self) -> Result<()> {
-        println!("[CPU] Executing TXS");
+        // println!("[CPU] Executing TXS");
         let value = self.get_value(RegisterType::X).as_u8();
         self.set_value(RegisterType::S, RegisterData::Bit8(value));
         Ok(())
     }
 
     fn tya(&mut self) -> Result<()> {
-        println!("[CPU] Executing TYA");
+        // println!("[CPU] Executing TYA");
         let value = self.get_value(RegisterType::Y).as_u8();
         self.set_value(RegisterType::A, RegisterData::Bit8(value));
         self.update_nz_flags(value);

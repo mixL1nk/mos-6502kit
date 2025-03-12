@@ -40,7 +40,7 @@ pub trait ShiftOperation {
 
 impl ShiftOperation for CPU {
     fn asl(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing ASL with mode: {:?}", mode);
+        // println!("[CPU] Executing ASL with mode: {:?}", mode);
 
         match mode {
             AddressModeValue::Accumulator => {
@@ -94,19 +94,19 @@ impl ShiftOperation for CPU {
     }
 
     fn lsr(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing LSR with mode: {:?}", mode);
+        // println!("[CPU] Executing LSR with mode: {:?}", mode);
 
         match mode {
             AddressModeValue::Accumulator => {
                 let value = self.get_value(RegisterType::A).as_u8();
-                println!("[DEBUG] LSR - Before: A = 0x{:02X}", value);
+                // println!("[DEBUG] LSR - Before: A = 0x{:02X}", value);
 
                 // Set carry flag first
                 self.set_flag(StatusRegister::CARRY, value & 0x01 != 0);
 
                 // Perform shift
                 let result = value >> 1;
-                println!("[DEBUG] LSR - Result: 0x{:02X}", result);
+                // println!("[DEBUG] LSR - Result: 0x{:02X}", result);
 
                 // Update A register first
                 self.set_value(RegisterType::A, RegisterData::Bit8(result));
@@ -115,10 +115,10 @@ impl ShiftOperation for CPU {
                 self.set_flag(StatusRegister::ZERO, result == 0);
                 self.set_flag(StatusRegister::NEGATIVE, false); // LSR always clears bit 7
 
-                println!(
-                    "[DEBUG] LSR - After set_value: A = 0x{:02X}",
-                    self.get_value(RegisterType::A).as_u8()
-                );
+                // println!(
+                //     "[DEBUG] LSR - After set_value: A = 0x{:02X}",
+                //     self.get_value(RegisterType::A).as_u8()
+                // );
             }
             AddressModeValue::ZeroPage(addr) => {
                 let value = self.read_memory(addr as u16)?;
@@ -163,7 +163,7 @@ impl ShiftOperation for CPU {
     }
 
     fn rol(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing ROL with mode: {:?}", mode);
+        // println!("[CPU] Executing ROL with mode: {:?}", mode);
 
         let carry = if self.get_flag(StatusRegister::CARRY) {
             1
@@ -223,7 +223,7 @@ impl ShiftOperation for CPU {
     }
 
     fn ror(&mut self, mode: AddressModeValue, _decode: DecodedInstruction) -> Result<()> {
-        println!("[CPU] Executing ROR with mode: {:?}", mode);
+        // println!("[CPU] Executing ROR with mode: {:?}", mode);
 
         let carry = if self.get_flag(StatusRegister::CARRY) {
             0x80

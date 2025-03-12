@@ -7,3 +7,7 @@ edition = "2024"
 doctest = false
 
 [dependencies]
+common = { path = "../common" }
+types = { path = "../types" }
+error = { path = "../error" }
+derive_more = { workspace = true }

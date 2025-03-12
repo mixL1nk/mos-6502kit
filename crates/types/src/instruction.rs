@@ -1,7 +1,7 @@
 use super::AddressModeValue;
-
+use derive_more::Display;
 /// 명령어 집합
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Display)]
 pub enum Instruction {
     // 로드/스토어 명령어
     LDA(AddressModeValue),

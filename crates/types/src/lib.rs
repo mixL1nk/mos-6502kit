@@ -1,3 +1,5 @@
+use derive_more::Display;
+
 mod address_mode;
 mod instruction;
 pub mod opcode;
@@ -7,7 +9,7 @@ pub use instruction::{CycleInfo, Instruction, InstructionInfo};
 pub use opcode::{OPCODE_MAP, get_opcode_info};
 
 /// 값을 포함한 어드레싱 모드
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Display)]
 pub enum AddressModeValue {
     Accumulator,
     Immediate(u8),
